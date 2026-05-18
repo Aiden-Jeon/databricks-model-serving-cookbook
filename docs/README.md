@@ -6,7 +6,7 @@
 
 | 자료 | 내용 |
 |------|------|
-| [slides/250530_Hadns-on_Sessionpptx.md](slides/250530_Hadns-on_Sessionpptx.md) | Samsung 핸즈온 세션 슬라이드 (124 slides) 의 마크다운 변환본. 다이어그램·아키텍처 그림은 `slides/images/` 에 저장. |
+| [slides/250530_Hadns-on_Sessionpptx.md](slides/250530_Hadns-on_Sessionpptx.md) | Model Serving 핸즈온 세션 슬라이드 (124 slides) 의 마크다운 변환본. 다이어그램·아키텍처 그림은 `slides/images/` 에 저장. |
 | [원본 Google Slides](https://docs.google.com/presentation/d/12gvoApL_qdhgEKMy19n9pz1x4xrLr5uW/edit) | 공유 권한 필요 |
 
 ## 외부 문서

@@ -9,9 +9,9 @@
 | 순서 | 파일 | 역할 | 사전 조건 |
 |------|------|------|----------|
 | 01 | [`01-code-paths.ipynb`](01-code-paths.ipynb) | `code_paths` 패턴, 평탄화 동작, nested package 제약, `infer_code_paths` | 01 챕터 00-setup |
-| 02 | [`02-uv-wheel.ipynb`](02-uv-wheel.ipynb) | `uv build` → wheel → `code_paths` + `extra_pip_requirements` (production 권장) | 01, [`samsung_preproc/`](samsung_preproc/) |
+| 02 | [`02-uv-wheel.ipynb`](02-uv-wheel.ipynb) | `uv build` → wheel → `code_paths` + `extra_pip_requirements` (production 권장) | 01, [`churn_preproc/`](churn_preproc/) |
 
-`samsung_preproc/` 은 02 노트북에서 wheel 빌드 대상으로 쓰는 샘플 패키지입니다. `pyproject.toml` + `src/samsung_preproc/` (src-layout).
+`churn_preproc/` 은 02 노트북에서 wheel 빌드 대상으로 쓰는 샘플 패키지입니다. `pyproject.toml` + `src/churn_preproc/` (src-layout).
 
 ## 🔀 매트릭스
 
@@ -42,7 +42,7 @@
 | 노트북 | 등록 모델 | 추가 산출물 |
 |--------|----------|------------|
 | 01-code-paths | `main.model_serving_cookbook.churn_codepaths` | `/tmp/work/preprocessing.py`, `/tmp/work/featurizers/` (예제용) |
-| 02-uv-wheel | `main.model_serving_cookbook.churn_wheel@champion` | `/tmp/wheels/samsung_preproc-0.1.0-py3-none-any.whl` |
+| 02-uv-wheel | `main.model_serving_cookbook.churn_wheel@champion` | `/tmp/wheels/churn_preproc-0.1.0-py3-none-any.whl` |
 
 학습 시간은 노트북당 1~2분.
 

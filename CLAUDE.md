@@ -66,19 +66,19 @@ Databricks 환경에서 MLflow 모델 logging · custom 코드 packaging · Mode
 
 Databricks 에서 **MLflow 모델 logging → custom 코드 packaging → Model Serving 배포** 전 과정을 **학습 단계 × logging 방식** 매트릭스로 정리한 쿡북.
 
-- 학습 단계 (행): 01-mlflow-logging / 02-code-packaging / 03-model-serving
+- 학습 단계 (행): 01-mlflow-logging / 02-code-packaging / 03-model-serving / 04-gpu-torch-serving
 - Logging 방식 (열): sklearn flavor / PyFunc (`PythonModel`) / custom code 번들 (`code_paths`, wheel)
-- 배포 토폴로지는 03 챕터 내부 노트북에서 비교: Classic CPU + Blue/Green vs Serverless Express
-- 데이터·모델은 단일 (synthetic customer churn 5K row, sklearn RandomForest/GradientBoosting). UC 카탈로그·schema·volume·endpoint 이름은 [`config.py`](01-mlflow-logging/config.py) 한 곳에서 관리.
+- 배포 토폴로지는 03 챕터 내부 노트북에서 비교: Classic CPU + Blue/Green vs Serverless Express. 04 챕터는 Classic GPU (`workload_type=GPU_SMALL`).
+- 데이터·모델 (01·02·03): synthetic customer churn 5K row, sklearn RandomForest/GradientBoosting. 04 챕터는 같은 데이터에 PyTorch MLP. UC 카탈로그·schema·volume·endpoint 이름은 [`config.py`](01-mlflow-logging/config.py) 한 곳에서 관리.
 
 ## 기술 스택
 
 | 영역 | 사용 |
 |------|------|
 | 언어 | Python 3.10+ |
-| ML 프레임워크 | scikit-learn |
+| ML 프레임워크 | scikit-learn (01·02·03), PyTorch 2.x (04 챕터) |
 | 실험·등록 | MLflow 2.20+ (UC registry, alias). 03 챕터 Express 노트북은 mlflow 3.1+ |
-| 실행 환경 | Databricks (DBR ML 15.x 이상, Serverless Notebook v3/v4 for Express) |
+| 실행 환경 | Databricks (DBR ML 15.x 이상; 04 챕터는 GPU 인스턴스 필요; Serverless Notebook v3/v4 for Express) |
 | 데이터 | Synthetic customer churn (`sklearn.datasets.make_classification`, 5K row) |
 | 패키징 | `uv` + `hatchling` (02-code-packaging/02-uv-wheel 의 wheel 빌드) |
 | 노트북 포맷 | `.ipynb` (Jupyter) — Databricks Repos 에서 그대로 열림 |
@@ -107,14 +107,17 @@ Databricks 에서 **MLflow 모델 logging → custom 코드 packaging → Model 
 │   └── 03-dependencies.ipynb
 ├── 02-code-packaging/                          # 행 2: custom 코드 번들링
 │   ├── config.py
-│   ├── samsung_preproc/                        # 02 노트북이 빌드할 샘플 패키지
+│   ├── churn_preproc/                        # 02 노트북이 빌드할 샘플 패키지
 │   ├── 01-code-paths.ipynb
 │   └── 02-uv-wheel.ipynb
 ├── 03-model-serving/                           # 행 3: endpoint 배포·호출
 │   ├── config.py
 │   ├── 01-model-serving.ipynb                  # Classic + Blue/Green
 │   ├── 02-express-deployment.ipynb             # Serverless Express
-│   └── 99-cleanup.ipynb                        # 핸즈온 마무리
+│   └── 99-cleanup.ipynb                        # 핸즈온 마무리 (endpoint_torch_gpu 도 정리)
+├── 04-gpu-torch-serving/                       # 행 4: GPU torch end-to-end
+│   ├── config.py
+│   └── 01-train-and-serve.ipynb                # GPU train → PyFunc log → GPU_SMALL endpoint
 └── docs/                                       # 슬라이드, 외부 자료 인덱스
     └── slides/250530_Hadns-on_Sessionpptx.md
 ```
@@ -151,9 +154,9 @@ Databricks 에서 **MLflow 모델 logging → custom 코드 packaging → Model 
 
 ## 운영 제약
 
-- **LLM fine-tuning / Foundation Model APIs / GPU serving 관련 내용은 추가하지 않는다** (이 쿡북의 명시적 비대상).
-- 모델·데이터는 단일(`make_classification` customer churn, sklearn 분류기)을 유지한다. 다른 데이터셋이나 모델을 도입하지 않는다.
+- **LLM fine-tuning / Foundation Model APIs / multi-GPU 분산 학습은 추가하지 않는다** (별도 [distributed training cookbook](https://github.com/Aiden-Jeon/databricks-distributed-training) 으로 분리). 단일 GPU 학습·서빙은 04 챕터에서 다룬다.
+- 데이터는 단일(`make_classification` customer churn)을 유지한다. 다른 데이터셋을 도입하지 않는다. 모델은 sklearn (01·02·03) 과 PyTorch MLP (04) 두 가지만 허용.
 - 등록소는 UC 한 가지(`databricks-uc`)만 다룬다. workspace registry(deprecated)는 다루지 않는다.
 - Stage(`Staging/Production`) 개념은 사용하지 않는다. UC 모델의 **alias** 만 사용한다.
-- 02-code-packaging 의 `samsung_preproc` 은 src-layout (`src/samsung_preproc/`) 을 유지한다. 02-uv-wheel 노트북이 이 레이아웃을 가정한다.
+- 02-code-packaging 의 `churn_preproc` 은 src-layout (`src/churn_preproc/`) 을 유지한다. 02-uv-wheel 노트북이 이 레이아웃을 가정한다.
 - 비용이 비싼 endpoint 는 모두 `scale_to_zero_enabled=True` 로 만든다. 핸즈온 종료 후 `99-cleanup` 으로 정리한다.

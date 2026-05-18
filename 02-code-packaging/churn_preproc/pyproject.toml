@@ -1,7 +1,7 @@
 [project]
-name = "samsung-preproc"
+name = "churn-preproc"
 version = "0.1.0"
-description = "Customer churn preprocessing utilities (Samsung hands-on)"
+description = "Customer churn preprocessing utilities"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

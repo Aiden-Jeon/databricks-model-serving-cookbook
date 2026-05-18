@@ -1,6 +1,6 @@
-"""samsung_preproc — customer churn preprocessing utilities."""
+"""churn_preproc — customer churn preprocessing utilities."""
 
-from samsung_preproc.features import (
+from churn_preproc.features import (
     add_lifetime_value,
     add_risk_bucket,
     add_tenure_band,

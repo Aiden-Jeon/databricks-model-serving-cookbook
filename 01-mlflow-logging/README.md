@@ -2,6 +2,14 @@
 
 > MLflow 모델을 **flavor / PyFunc** 두 방식으로 logging 하고, dependency 를 캡처하는 패턴을 학습합니다. Model Serving 으로 가기 전의 기초 챕터입니다.
 
+![MLflow 전체 아키텍처 — Tracking / Models / Registry / Serving](https://mlflow.org/docs/latest/assets/images/mlflow-deployment-overview-f0b56bbb6d5689f022a5cff47f16f832.png)
+
+본 챕터에서 만드는 산출물(`MLmodel`, `flavors`, `requirements.txt`, `python_env.yaml`, artifacts)이 모델 패키지 안에 어떻게 배치되는지는 아래 그림을 참고합니다.
+
+![MLflow Model 패키징 구조](https://mlflow.org/docs/latest/assets/images/anatomy-of-a-model-8b14760a287cc3ef7464858dcaf8cf90.svg)
+
+출처: [MLflow Models 공식 문서](https://mlflow.org/docs/latest/ml/model/).
+
 ## 🧭 노트북 흐름
 
 번호 순서대로 실행하는 흐름입니다. `00-setup` 은 쿡북 전체에서 한 번만 실행하면 됩니다 (다른 챕터도 같은 UC 리소스를 공유).

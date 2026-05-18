@@ -8,7 +8,7 @@
 
 | 순서 | 파일 | 역할 | 사전 조건 |
 |------|------|------|----------|
-| 01 | [`01-model-serving.ipynb`](01-model-serving.ipynb) | Endpoint 생성, 호출 4방법, AI Gateway, Blue/Green 트래픽, Spark UDF batch inference | 02 챕터 02-uv-wheel 까지 (등록 모델 `churn_wheel@champion`) |
+| 01 | [`01-model-serving.ipynb`](01-model-serving.ipynb) | Endpoint 생성, 호출 4방법, AI Gateway, Blue/Green 트래픽 | 02 챕터 02-uv-wheel 까지 (등록 모델 `churn_wheel@champion`) |
 | 02 | [`02-express-deployment.ipynb`](02-express-deployment.ipynb) | Serverless CPU `EnvPackConfig` 원클릭 배포. Notebook v3/v4 + `mlflow>=3.1.0` 필요. | 01 챕터 00-setup |
 | 99 | [`99-cleanup.ipynb`](99-cleanup.ipynb) | 생성된 endpoint, 등록 모델, UC table 정리 (선택) | — |
 
@@ -42,7 +42,7 @@
 
 | 노트북 | 생성 endpoint | 호출 검증 |
 |--------|---------------|----------|
-| 01-model-serving | `churn-wheel-endpoint` (`scale_to_zero=True`) | REST / SDK / Spark UDF 4종 모두 동일 응답 |
+| 01-model-serving | `churn-wheel-endpoint` (`scale_to_zero=True`) | REST / SDK / requests / curl 4종 호출 모두 동일 응답 |
 | 02-express-deployment | `churn-express-endpoint` | REST 호출 ms 단위 응답 |
 | 99-cleanup | 위 두 endpoint 삭제 | UC 모델·table 도 선택적으로 삭제 |
 

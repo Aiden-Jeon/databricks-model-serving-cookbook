@@ -14,11 +14,14 @@ project:
     - "03-model-serving/README.md"
     - "03-model-serving/**/*.md"
     - "03-model-serving/**/*.ipynb"
+    - "04-gpu-torch-serving/README.md"
+    - "04-gpu-torch-serving/**/*.md"
+    - "04-gpu-torch-serving/**/*.ipynb"
     - "docs/README.md"
     - "docs/**/*.md"
     - "!CLAUDE.md"
     - "!AGENTS.md"
-    - "!02-code-packaging/samsung_preproc/**"
+    - "!02-code-packaging/churn_preproc/**"
 
 website:
   title: "Databricks Model Serving Cookbook"
@@ -47,6 +50,8 @@ website:
             text: 02 · Code Packaging
           - href: 03-model-serving/README.md
             text: 03 · Model Serving
+          - href: 04-gpu-torch-serving/README.md
+            text: 04 · GPU Torch Serving
       - href: docs/README.md
         text: 참고 자료
   sidebar:
@@ -85,6 +90,10 @@ website:
           - 03-model-serving/01-model-serving.ipynb
           - 03-model-serving/02-express-deployment.ipynb
           - 03-model-serving/99-cleanup.ipynb
+      - section: "04 · GPU Torch Serving"
+        href: 04-gpu-torch-serving/README.md
+        contents:
+          - 04-gpu-torch-serving/01-train-and-serve.ipynb
       - section: "참고 자료"
         href: docs/README.md
         contents:
