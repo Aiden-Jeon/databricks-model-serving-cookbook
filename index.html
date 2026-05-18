@@ -530,11 +530,11 @@ ul.task-list li input[type="checkbox"] {
 <p>Databricks 환경에서 <strong>MLflow 모델 logging → custom 코드 packaging → Model Serving 배포</strong>까지 end-to-end 패턴을 <strong>단계 × 방식</strong> 매트릭스로 정리한 쿡북입니다.</p>
 <section id="누구를-위한-쿡북인가" class="level2">
 <h2 class="anchored" data-anchor-id="누구를-위한-쿡북인가">🎯 누구를 위한 쿡북인가</h2>
-<p>다음 독자를 염두에 두고 작성했습니다.</p>
+<p>이런 분들을 가정하고 썼습니다.</p>
 <ul>
 <li>MLflow 로 모델을 logging 하고 Databricks Model Serving 으로 배포하려는 ML 엔지니어</li>
 <li><code>code_paths</code> 의 평탄화·nested package 함정으로 한 번이라도 고생해 본 팀</li>
-<li>PoC 의 빠른 PyFunc → production 의 wheel 패키징 → Serverless Express 까지 전환 경로를 한 곳에서 보고 싶은 팀</li>
+<li>PoC 의 빠른 PyFunc → production 의 wheel 패키징 → Serverless Express 까지, 전환 경로를 한 곳에서 보고 싶은 팀</li>
 </ul>
 </section>
 <section id="매트릭스" class="level2">
@@ -568,12 +568,18 @@ ul.task-list li input[type="checkbox"] {
 <td>Endpoint 호출 대상</td>
 <td><a href="./03-model-serving/01-model-serving.html">01 · Endpoint 4가지 호출, Blue/Green</a><br><a href="./03-model-serving/02-express-deployment.html">02 · Serverless Express 원클릭 배포</a></td>
 </tr>
+<tr class="even">
+<td><strong>04-gpu-torch-serving</strong></td>
+<td>—</td>
+<td><a href="04-gpu-torch-serving/01-train-and-serve.ipynb">01 · GPU PyTorch — train · log · serve (<code>workload_type=GPU_SMALL</code>)</a></td>
+<td>(같은 노트북에서 <code>code_paths</code> 패턴 사용)</td>
+</tr>
 </tbody>
 </table>
-<p>01 챕터의 <code>00-setup</code> 은 모든 챕터가 공유하는 UC 리소스(catalog/schema/volume/customer table)와 MLflow registry 를 준비합니다. 다른 챕터의 사전 조건으로 한 번만 실행하면 됩니다. 자세한 노트북 목록은 <a href="./01-mlflow-logging/README.html"><code>01-mlflow-logging/README.md</code></a>, <a href="./02-code-packaging/README.html"><code>02-code-packaging/README.md</code></a>, <a href="./03-model-serving/README.html"><code>03-model-serving/README.md</code></a> 를 참고하세요.</p>
+<p><code>00-setup</code> (01 챕터) 은 모든 챕터가 공유하는 UC 리소스(catalog/schema/volume/customer table)와 MLflow registry 를 준비합니다. 한 번만 실행하면 다른 챕터의 사전 조건이 끝납니다. 챕터별 노트북 목록은 <a href="./01-mlflow-logging/README.html"><code>01-mlflow-logging/README.md</code></a>, <a href="./02-code-packaging/README.html"><code>02-code-packaging/README.md</code></a>, <a href="./03-model-serving/README.html"><code>03-model-serving/README.md</code></a>, <a href="04-gpu-torch-serving/README.md"><code>04-gpu-torch-serving/README.md</code></a> 에서 확인하세요.</p>
 <section id="행-학습-단계" class="level3">
 <h3 class="anchored" data-anchor-id="행-학습-단계">행: 학습 단계</h3>
-<p>행별 차별점은 다음과 같습니다.</p>
+<p>행마다 다루는 핵심은 다음과 같습니다.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -598,12 +604,16 @@ ul.task-list li input[type="checkbox"] {
 <td>03-model-serving</td>
 <td>등록 모델을 Serving endpoint 로 띄우고 호출. Classic Blue/Green vs Serverless Express.</td>
 </tr>
+<tr class="even">
+<td>04-gpu-torch-serving</td>
+<td>PyTorch MLP 를 GPU 에서 학습 → PyFunc logging → <code>workload_type=GPU_SMALL</code> (T4) endpoint 로 배포하는 GPU end-to-end 미니 체험판.</td>
+</tr>
 </tbody>
 </table>
 </section>
 <section id="열-모델코드-logging-방식" class="level3">
 <h3 class="anchored" data-anchor-id="열-모델코드-logging-방식">열: 모델·코드 logging 방식</h3>
-<p>logging 방식별 차이는 다음과 같습니다.</p>
+<p>열별로 logging API 선택이 다음과 같이 갈립니다.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 23%">
@@ -677,12 +687,12 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="공통-스택">🧱 공통 스택</h2>
 <p>쿡북 전반에서 사용하는 기술 스택입니다.</p>
 <ul>
-<li>모델: sklearn 분류기 (Random Forest / Gradient Boosting) on customer churn 데이터</li>
-<li>라이브러리: <code>mlflow&gt;=2.20</code>, <code>databricks-sdk&gt;=0.30</code>, <code>scikit-learn</code>, <code>uv</code></li>
+<li>모델: sklearn 분류기 (Random Forest / Gradient Boosting) on customer churn 데이터, 04 챕터는 PyTorch MLP</li>
+<li>라이브러리: <code>mlflow&gt;=2.20</code>, <code>databricks-sdk&gt;=0.30</code>, <code>scikit-learn</code>, <code>uv</code>, <code>torch&gt;=2.0</code> (04 챕터만)</li>
 <li>데이터: synthetic customer churn (5K row, <code>sklearn.datasets.make_classification</code>)</li>
 <li>등록소: Unity Catalog (<code>databricks-uc</code> registry URI)</li>
 <li>모델 alias: <code>@champion</code> / <code>@challenger</code></li>
-<li>Serving: Databricks Model Serving (Classic + Serverless Express)</li>
+<li>Serving: Databricks Model Serving (Classic CPU + Serverless Express + Classic GPU <code>workload_type=GPU_SMALL</code>)</li>
 </ul>
 </section>
 <section id="시작-가이드" class="level2">
@@ -748,7 +758,7 @@ ul.task-list li input[type="checkbox"] {
 <td>6</td>
 <td><code>02-code-packaging/02-uv-wheel</code></td>
 <td>wheel 패키징 production 패턴</td>
-<td><code>samsung_preproc==0.1.0</code> wheel 빌드 + 모델 안 번들링</td>
+<td><code>churn_preproc==0.1.0</code> wheel 빌드 + 모델 안 번들링</td>
 </tr>
 <tr class="odd">
 <td>7</td>
@@ -762,28 +772,35 @@ ul.task-list li input[type="checkbox"] {
 <td>Serverless Express 비교</td>
 <td>Express endpoint 가 1~3 분 안에 ready</td>
 </tr>
+<tr class="odd">
+<td>9</td>
+<td><code>04-gpu-torch-serving/01-train-and-serve</code></td>
+<td>torch GPU 학습 + GPU endpoint</td>
+<td><code>torch.cuda.is_available()=True</code>, <code>workload_type=GPU_SMALL</code> endpoint 가 ready</td>
+</tr>
 </tbody>
 </table>
-<p>각 단계가 어떤 학습 효과를 주는지 정리하면 다음과 같습니다.</p>
+<p>단계를 넘어갈 때 얻는 학습 효과는 다음과 같이 누적됩니다.</p>
 <ul>
 <li><strong>01 → 02</strong>: PyFunc 가 한계에 부딪치는 시점(custom 모듈 import) 을 <code>code_paths</code> 로 풀어 보고, 평탄화 제약을 직접 만난 뒤 wheel 패턴으로 넘어갑니다.</li>
 <li><strong>02 → 03</strong>: wheel 로 packaging 된 모델이 endpoint 환경에서 그대로 install·import 되는 흐름을 확인합니다. Classic vs Express 의 trade-off 도 같은 모델로 비교합니다.</li>
+<li><strong>03 → 04</strong>: 같은 logging·serving 패턴을 PyTorch + GPU 로 확장합니다. <code>workload_type=GPU_SMALL</code> 만 다를 뿐 endpoint 호출 인터페이스는 그대로입니다.</li>
 </ul>
 </section>
 </section>
 <section id="참고" class="level2">
 <h2 class="anchored" data-anchor-id="참고">📚 참고</h2>
 <ul>
-<li><a href="./docs/README.html"><code>docs/</code></a> — Samsung 핸즈온 슬라이드, 외부 자료 인덱스.</li>
+<li><a href="./docs/README.html"><code>docs/</code></a> — Model Serving 핸즈온 슬라이드, 외부 자료 인덱스.</li>
 </ul>
 </section>
 <section id="본-쿡북의-스코프" class="level2">
 <h2 class="anchored" data-anchor-id="본-쿡북의-스코프">⚠️ 본 쿡북의 스코프</h2>
-<p>쿡북이 다루는 범위와 그렇지 않은 범위를 분명히 해 둡니다.</p>
+<p>다루는 범위와 다루지 않는 범위를 분명히 해 둡니다.</p>
 <ul>
-<li><strong>다룹니다</strong>: MLflow flavor·PyFunc logging, <code>code_paths</code> / <code>pip_requirements</code> / <code>extra_pip_requirements</code> / wheel packaging, UC 모델 등록·alias, Classic Model Serving endpoint, Serverless Express Deployments.</li>
-<li><strong>다루지 않습니다</strong>: LLM fine-tuning, Foundation Model APIs, GPU serving (현재는 CPU only), Feature Store / Vector Search 와의 결합, Lakehouse Monitoring (model monitoring).</li>
-<li><strong>목표 학습 시간</strong>: 각 노트북 5~10분 (Express endpoint 의 cold start 가 가장 깁니다).</li>
+<li><strong>다룹니다</strong>: MLflow flavor·PyFunc logging, <code>code_paths</code> / <code>pip_requirements</code> / <code>extra_pip_requirements</code> / wheel packaging, UC 모델 등록·alias, Classic Model Serving endpoint (CPU + GPU <code>GPU_SMALL</code>), Serverless Express Deployments, PyTorch 단일 GPU 학습.</li>
+<li><strong>다루지 않습니다</strong>: LLM fine-tuning, Foundation Model APIs, multi-GPU / 분산 학습 (별도 <a href="https://github.com/Aiden-Jeon/databricks-distributed-training">distributed training cookbook</a> 참고), Feature Store / Vector Search 와의 결합, Lakehouse Monitoring (model monitoring).</li>
+<li><strong>목표 학습 시간</strong>: 각 노트북 5~10분. GPU endpoint provisioning 만 5~15분 추가.</li>
 </ul>
 
 

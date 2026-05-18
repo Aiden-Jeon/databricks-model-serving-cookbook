@@ -685,7 +685,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="자동-추론" class="level3">
 <h3 class="anchored" data-anchor-id="자동-추론">자동 추론</h3>
-<p><code>input_example</code> 제공 시 MLflow가 로깅 중 모델 한 번 실행 → 사용된 모듈 검사 → <code>requirements.txt</code> 작성. 없으면 flavor 기본값으로 fallback.</p>
+<p><code>input_example</code> 을 주면 MLflow 가 로깅 중 모델을 한 번 실행 → 사용된 모듈 검사 → <code>requirements.txt</code> 를 작성합니다. 없으면 flavor 기본값으로 fallback.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="va">MLFLOW_LOCK_MODEL_DEPENDENCIES</span><span class="op">=</span>true  <span class="co"># transitive 까지 완전 lock</span></span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="air-gapped-서빙용-모든-deps-번들" class="level3">
@@ -753,7 +753,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Alias로 load</span></span>
 <span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> mlflow.pyfunc.load_model(<span class="st">"models:/main.ml_team.sentiment@Champion"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
-<p>UC에서는 Workspace Model Registry의 Staging/Production stage가 <strong>없어졌고</strong>, 대신 <strong>mutable alias</strong>(Champion/Challenger 등) + tag를 사용.</p>
+<p>UC 에서는 Workspace Model Registry 의 Staging/Production stage 가 <strong>deprecated 되었고</strong>, 그 자리를 <strong>mutable alias</strong>(Champion/Challenger 등) + tag 가 대신합니다.</p>
 </section>
 <section id="anti-patterns" class="level2">
 <h2 class="anchored" data-anchor-id="anti-patterns">5. Anti-patterns</h2>

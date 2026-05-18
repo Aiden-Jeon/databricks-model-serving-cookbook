@@ -2,86 +2,86 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/docs/slides/250530_Hadns-on_Sessionpptx.html</loc>
-    <lastmod>2026-05-18T02:40:40.293Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.171Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/03-model-serving/99-cleanup.html</loc>
-    <lastmod>2026-05-18T02:40:40.292Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.170Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/03-model-serving/01-model-serving.html</loc>
-    <lastmod>2026-05-18T02:40:40.292Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.170Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/02-code-packaging/02-uv-wheel.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/02-code-packaging/README.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/01-mlflow-logging/02-pyfunc-custom.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/01-mlflow-logging/00-setup.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/00-foundations/env-databricks-environments.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/00-foundations/concepts-model-serving.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/00-foundations/concepts-express-deploy.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/index.html</loc>
-    <lastmod>2026-05-18T02:40:40.408Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.287Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/00-foundations/README.html</loc>
-    <lastmod>2026-05-18T02:40:40.290Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.168Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/00-foundations/concepts-mlflow-logging.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/00-foundations/concepts-uv-wheel.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/01-mlflow-logging/README.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/01-mlflow-logging/01-flavor-logging.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/01-mlflow-logging/03-dependencies.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/02-code-packaging/01-code-paths.html</loc>
-    <lastmod>2026-05-18T02:40:40.291Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.169Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/03-model-serving/README.html</loc>
-    <lastmod>2026-05-18T02:40:40.292Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.170Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/03-model-serving/02-express-deployment.html</loc>
-    <lastmod>2026-05-18T02:40:40.292Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.170Z</lastmod>
   </url>
   <url>
     <loc>https://aiden-jeon.github.io/databricks-mlflow-model-serving/docs/README.html</loc>
-    <lastmod>2026-05-18T02:40:40.292Z</lastmod>
+    <lastmod>2026-05-18T04:40:57.170Z</lastmod>
   </url>
 </urlset>
