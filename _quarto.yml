@@ -1,0 +1,121 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - "index.qmd"
+    - "00-foundations/README.md"
+    - "00-foundations/**/*.md"
+    - "01-mlflow-logging/README.md"
+    - "01-mlflow-logging/**/*.md"
+    - "01-mlflow-logging/**/*.ipynb"
+    - "02-code-packaging/README.md"
+    - "02-code-packaging/**/*.md"
+    - "02-code-packaging/**/*.ipynb"
+    - "03-model-serving/README.md"
+    - "03-model-serving/**/*.md"
+    - "03-model-serving/**/*.ipynb"
+    - "docs/README.md"
+    - "docs/**/*.md"
+    - "!CLAUDE.md"
+    - "!AGENTS.md"
+    - "!02-code-packaging/samsung_preproc/**"
+
+website:
+  title: "Databricks Model Serving Cookbook"
+  description: "Databricks 에서 MLflow 모델 logging → custom 코드 packaging → Model Serving 배포까지 end-to-end 패턴을 단계 × 방식 매트릭스로 정리한 쿡북."
+  site-url: https://aiden-jeon.github.io/databricks-mlflow-model-serving
+  repo-url: https://github.com/Aiden-Jeon/databricks-mlflow-model-serving
+  repo-actions: [edit, source]
+  open-graph: true
+  twitter-card: true
+  page-navigation: true
+  search:
+    location: navbar
+    type: overlay
+  navbar:
+    background: primary
+    left:
+      - href: index.qmd
+        text: Home
+      - href: 00-foundations/README.md
+        text: 00 · Foundations
+      - text: Cookbooks
+        menu:
+          - href: 01-mlflow-logging/README.md
+            text: 01 · MLflow Logging
+          - href: 02-code-packaging/README.md
+            text: 02 · Code Packaging
+          - href: 03-model-serving/README.md
+            text: 03 · Model Serving
+      - href: docs/README.md
+        text: 참고 자료
+  sidebar:
+    style: docked
+    collapse-level: 3
+    contents:
+      - text: Home
+        href: index.qmd
+      - section: "00 · Foundations"
+        href: 00-foundations/README.md
+        contents:
+          - section: "Concepts"
+            contents:
+              - 00-foundations/concepts-mlflow-logging.md
+              - 00-foundations/concepts-model-serving.md
+              - 00-foundations/concepts-uv-wheel.md
+              - 00-foundations/concepts-express-deploy.md
+          - section: "Environment"
+            contents:
+              - 00-foundations/env-databricks-environments.md
+      - section: "01 · MLflow Logging"
+        href: 01-mlflow-logging/README.md
+        contents:
+          - 01-mlflow-logging/00-setup.ipynb
+          - 01-mlflow-logging/01-flavor-logging.ipynb
+          - 01-mlflow-logging/02-pyfunc-custom.ipynb
+          - 01-mlflow-logging/03-dependencies.ipynb
+      - section: "02 · Code Packaging"
+        href: 02-code-packaging/README.md
+        contents:
+          - 02-code-packaging/01-code-paths.ipynb
+          - 02-code-packaging/02-uv-wheel.ipynb
+      - section: "03 · Model Serving"
+        href: 03-model-serving/README.md
+        contents:
+          - 03-model-serving/01-model-serving.ipynb
+          - 03-model-serving/02-express-deployment.ipynb
+          - 03-model-serving/99-cleanup.ipynb
+      - section: "참고 자료"
+        href: docs/README.md
+        contents:
+          - docs/slides/250530_Hadns-on_Sessionpptx.md
+
+format:
+  html:
+    theme:
+      light: [cosmo, theme.scss]
+      dark: [darkly, theme.scss]
+    toc: true
+    toc-depth: 3
+    toc-location: right
+    grid:
+      sidebar-width: 280px
+      body-width: 760px
+      margin-width: 260px
+      gutter-width: 2.5rem
+    code-copy: true
+    code-overflow: scroll
+    highlight-style: github-dark
+    include-in-header:
+      text: |
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    anchor-sections: true
+    description-meta: "Databricks 에서 MLflow 모델 logging → custom 코드 packaging → Model Serving 배포까지 end-to-end 패턴을 단계 × 방식 매트릭스로 정리한 쿡북."
+
+execute:
+  enabled: false
+  freeze: true
+
+lang: ko
