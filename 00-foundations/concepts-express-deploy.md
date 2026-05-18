@@ -1,4 +1,4 @@
-# Databricks Serverless CPU 원클릭 서빙
+# Express Deployment
 
 ## 정답: Express Deployments (이전명 Serverless Optimized Deployments)
 

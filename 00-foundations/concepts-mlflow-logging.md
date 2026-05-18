@@ -1,4 +1,4 @@
-# MLflow Model Logging on Databricks
+# MLflow Model Logging
 
 (MLflow 2.20+ / 3.x, as of May 2026)
 

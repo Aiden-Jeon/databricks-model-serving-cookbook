@@ -1,4 +1,4 @@
-# Custom 코드 패키징: uv + wheel 베스트 프랙티스
+# uv + Wheel 패키징
 
 **결론:** 사용자 가설이 맞음. 중첩 패키지 / relative import / 재현성 필요할 때 `uv build` 로 wheel 만들어 `code_paths` + `extra_pip_requirements` 로 함께 올리는 패턴이 정석.
 

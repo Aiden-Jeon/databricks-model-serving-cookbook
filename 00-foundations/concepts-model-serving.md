@@ -1,4 +1,4 @@
-# Databricks Model Serving 배포
+# Model Serving
 
 ## 1. Endpoint 생성
 
