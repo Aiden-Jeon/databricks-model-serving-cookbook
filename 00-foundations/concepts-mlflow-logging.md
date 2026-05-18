@@ -112,7 +112,7 @@ extra_pip_requirements=[
 
 ### 자동 추론
 
-`input_example` 제공 시 MLflow가 로깅 중 모델 한 번 실행 → 사용된 모듈 검사 → `requirements.txt` 작성. 없으면 flavor 기본값으로 fallback.
+`input_example` 을 주면 MLflow 가 로깅 중 모델을 한 번 실행 → 사용된 모듈 검사 → `requirements.txt` 를 작성합니다. 없으면 flavor 기본값으로 fallback.
 
 ```bash
 MLFLOW_LOCK_MODEL_DEPENDENCIES=true  # transitive 까지 완전 lock
@@ -186,7 +186,7 @@ client.set_registered_model_alias("main.ml_team.sentiment", "Challenger", mv.ver
 model = mlflow.pyfunc.load_model("models:/main.ml_team.sentiment@Champion")
 ```
 
-UC에서는 Workspace Model Registry의 Staging/Production stage가 **없어졌고**, 대신 **mutable alias**(Champion/Challenger 등) + tag를 사용.
+UC 에서는 Workspace Model Registry 의 Staging/Production stage 가 **deprecated 되었고**, 그 자리를 **mutable alias**(Champion/Challenger 등) + tag 가 대신합니다.
 
 ## 5. Anti-patterns
 

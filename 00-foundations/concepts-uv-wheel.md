@@ -1,6 +1,6 @@
 # uv + Wheel 패키징
 
-**결론:** 사용자 가설이 맞음. 중첩 패키지 / relative import / 재현성 필요할 때 `uv build` 로 wheel 만들어 `code_paths` + `extra_pip_requirements` 로 함께 올리는 패턴이 정석.
+**결론:** 중첩 패키지 / relative import / 재현성이 걸리는 상황에서는 `uv build` 로 wheel 을 만들어 `code_paths` + `extra_pip_requirements` 로 함께 올리는 패턴이 정석입니다.
 
 ## 1. uv 로 wheel 빌드
 

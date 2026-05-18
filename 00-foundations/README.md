@@ -1,6 +1,6 @@
 # 00 · Foundations
 
-본 폴더는 챕터 노트북을 따라가기 전에 알아 두면 좋은 **MLflow logging · Model Serving · packaging 공통 개념**을 모아 둡니다. 챕터 README가 짧게 유지될 수 있도록 반복되는 설명을 이곳으로 끌어냈습니다.
+챕터 노트북을 따라가기 전에 알아 두면 좋은 **MLflow logging · Model Serving · packaging 공통 개념**을 이 폴더에 모아 두었습니다. 챕터 README 가 짧게 유지될 수 있도록 반복되는 설명을 이쪽으로 끌어냈습니다.
 
 ## 📂 인덱스
 
@@ -16,7 +16,7 @@
 | 문서 | 내용 |
 |------|------|
 | [concepts-mlflow-logging.md](concepts-mlflow-logging.md) | `mlflow.pyfunc.log_model` 시그니처, `PythonModel`, `code_paths`, `pip_requirements` vs `extra_pip_requirements`, signature/input_example |
-| [concepts-model-serving.md](concepts-model-serving.md) | Serving endpoint 생성/호출 4가지 방법, AI Gateway, Blue/Green, Spark UDF batch |
+| [concepts-model-serving.md](concepts-model-serving.md) | Serving endpoint 생성/호출 4가지 방법, AI Gateway, Blue/Green |
 | [concepts-uv-wheel.md](concepts-uv-wheel.md) | `uv build` 로 wheel 만들기 → `code_paths` + `extra_pip_requirements` production 권장 패턴 |
 | [concepts-express-deploy.md](concepts-express-deploy.md) | Serverless CPU `EnvPackConfig` 원클릭 배포 (Express Deployments) |
 
