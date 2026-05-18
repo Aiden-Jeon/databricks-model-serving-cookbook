@@ -217,11 +217,11 @@ UC에서는 Workspace Model Registry의 Staging/Production stage가 **없어졌�
 
 ## 참고
 
-- https://mlflow.org/docs/latest/python_api/mlflow.pyfunc.html
-- https://mlflow.org/docs/latest/ml/model/python_model/
-- https://mlflow.org/blog/custom-pyfunc/
-- https://mlflow.org/docs/latest/ml/model/dependencies/
-- https://mlflow.org/docs/latest/ml/model/signatures/
-- https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/
-- https://docs.databricks.com/aws/en/mlflow/log-model-dependencies.html
-- https://docs.databricks.com/aws/en/machine-learning/model-serving/private-libraries-model-serving
+- [mlflow.org/docs/latest/python_api/mlflow.pyfunc.html](https://mlflow.org/docs/latest/python_api/mlflow.pyfunc.html)
+- [mlflow.org/docs/latest/ml/model/python_model/](https://mlflow.org/docs/latest/ml/model/python_model/)
+- [mlflow.org/blog/custom-pyfunc/](https://mlflow.org/blog/custom-pyfunc/)
+- [mlflow.org/docs/latest/ml/model/dependencies/](https://mlflow.org/docs/latest/ml/model/dependencies/)
+- [mlflow.org/docs/latest/ml/model/signatures/](https://mlflow.org/docs/latest/ml/model/signatures/)
+- [docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/](https://docs.databricks.com/aws/en/machine-learning/manage-model-lifecycle/)
+- [docs.databricks.com/aws/en/mlflow/log-model-dependencies.html](https://docs.databricks.com/aws/en/mlflow/log-model-dependencies.html)
+- [docs.databricks.com/aws/en/machine-learning/model-serving/private-libraries-model-serving](https://docs.databricks.com/aws/en/machine-learning/model-serving/private-libraries-model-serving)

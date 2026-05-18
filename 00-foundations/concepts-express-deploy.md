@@ -91,8 +91,8 @@ MLflow 3 **Deployment Jobs** (UC governed) 로 2→3 자동화 가능 — 진정
 
 ## 참고
 
-- https://docs.databricks.com/aws/en/machine-learning/model-serving/express-deployments
-- https://docs.databricks.com/aws/en/machine-learning/model-serving/serverless-optimized-deployments
-- https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints
-- https://docs.databricks.com/aws/en/mlflow/models
-- https://www.databricks.com/product/pricing/model-serving
+- [docs.databricks.com/aws/en/machine-learning/model-serving/express-deployments](https://docs.databricks.com/aws/en/machine-learning/model-serving/express-deployments)
+- [docs.databricks.com/aws/en/machine-learning/model-serving/serverless-optimized-deployments](https://docs.databricks.com/aws/en/machine-learning/model-serving/serverless-optimized-deployments)
+- [docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints](https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints)
+- [docs.databricks.com/aws/en/mlflow/models](https://docs.databricks.com/aws/en/mlflow/models)
+- [www.databricks.com/product/pricing/model-serving](https://www.databricks.com/product/pricing/model-serving)

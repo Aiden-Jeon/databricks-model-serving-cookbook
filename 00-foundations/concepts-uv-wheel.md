@@ -5,18 +5,18 @@
 ## 1. uv 로 wheel 빌드
 
 ```bash
-uv init --lib samsung_preproc   # --lib 면 src/ 레이아웃 + 패키지화
-cd samsung_preproc
+uv init --lib churn_preproc   # --lib 면 src/ 레이아웃 + 패키지화
+cd churn_preproc
 ```
 
 생성된 구조:
 
 ```
-samsung_preproc/
+churn_preproc/
 ├── .python-version
 ├── pyproject.toml
 └── src/
-    └── samsung_preproc/
+    └── churn_preproc/
         ├── py.typed
         └── __init__.py
 ```
@@ -25,9 +25,9 @@ samsung_preproc/
 
 ```toml
 [project]
-name = "samsung-preproc"
+name = "churn-preproc"
 version = "0.1.0"
-description = "Samsung preprocessing utilities"
+description = "Churn preprocessing utilities"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",
@@ -42,9 +42,9 @@ build-backend = "uv_build"
 빌드 + 스모크 테스트:
 
 ```bash
-uv build                          # dist/samsung_preproc-0.1.0-py3-none-any.whl + .tar.gz
-uv pip install ./dist/samsung_preproc-0.1.0-py3-none-any.whl
-python -c "from samsung_preproc import preprocess; print('ok')"
+uv build                          # dist/churn_preproc-0.1.0-py3-none-any.whl + .tar.gz
+uv pip install ./dist/churn_preproc-0.1.0-py3-none-any.whl
+python -c "from churn_preproc import preprocess; print('ok')"
 ```
 
 C-extension / dynamic version 필요하면 `hatchling` 백엔드 사용.
@@ -56,9 +56,9 @@ C-extension / dynamic version 필요하면 `hatchling` 백엔드 사용.
 ```python
 mlflow.pyfunc.log_model(
     name="model",
-    python_model=SamsungModel(),
-    code_paths=["dist/samsung_preproc-0.1.0-py3-none-any.whl"],
-    extra_pip_requirements=["code/samsung_preproc-0.1.0-py3-none-any.whl"],
+    python_model=ChurnModel(),
+    code_paths=["dist/churn_preproc-0.1.0-py3-none-any.whl"],
+    extra_pip_requirements=["code/churn_preproc-0.1.0-py3-none-any.whl"],
     input_example=example_df,
 )
 ```
@@ -83,9 +83,9 @@ mlflow.pyfunc.log_model(
 ```python
 mlflow.pyfunc.log_model(
     name="model",
-    python_model=SamsungModel(),
+    python_model=ChurnModel(),
     extra_pip_requirements=[
-        "/Volumes/main/ml/wheels/samsung_preproc-0.1.0-py3-none-any.whl",
+        "/Volumes/main/ml/wheels/churn_preproc-0.1.0-py3-none-any.whl",
     ],
 )
 ```
@@ -114,7 +114,7 @@ mlflow.models.utils.add_libraries_to_model("models:/main.ml.my_model/1")
 
 ## 4. End-to-End 예제
 
-**`src/samsung_preproc/__init__.py`**
+**`src/churn_preproc/__init__.py`**
 
 ```python
 import math
@@ -129,8 +129,8 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 **빌드:**
 
 ```bash
-cd samsung_preproc && uv build
-# → dist/samsung_preproc-0.1.0-py3-none-any.whl
+cd churn_preproc && uv build
+# → dist/churn_preproc-0.1.0-py3-none-any.whl
 ```
 
 **노트북 셀 — log_model:**
@@ -138,33 +138,33 @@ cd samsung_preproc && uv build
 ```python
 import mlflow
 import mlflow.pyfunc
-from samsung_preproc import preprocess  # 학습 시에도 사용
+from churn_preproc import preprocess  # 학습 시에도 사용
 
-class SamsungModel(mlflow.pyfunc.PythonModel):
+class ChurnModel(mlflow.pyfunc.PythonModel):
     def load_context(self, context):
         import joblib
         self.model = joblib.load(context.artifacts["sk_model"])
 
     def predict(self, context, model_input):
-        from samsung_preproc import preprocess  # 설치된 wheel에서 import
+        from churn_preproc import preprocess  # 설치된 wheel에서 import
         cleaned = preprocess(model_input)
         return self.model.predict(cleaned)
 
-WHEEL = "dist/samsung_preproc-0.1.0-py3-none-any.whl"
+WHEEL = "dist/churn_preproc-0.1.0-py3-none-any.whl"
 
 with mlflow.start_run():
     mlflow.pyfunc.log_model(
-        name="samsung_model",
-        python_model=SamsungModel(),
+        name="churn_model",
+        python_model=ChurnModel(),
         artifacts={"sk_model": "models/sk_pipeline.joblib"},
         code_paths=[WHEEL],
         extra_pip_requirements=[f"code/{WHEEL.split('/')[-1]}"],
         input_example=example_df,
-        registered_model_name="main.samsung.preproc_model",
+        registered_model_name="main.demo.preproc_model",
     )
 ```
 
-서빙 시 cold-start에 `code/samsung_preproc-0.1.0-py3-none-any.whl` 가 pip install → `from samsung_preproc import preprocess` 정상.
+서빙 시 cold-start에 `code/churn_preproc-0.1.0-py3-none-any.whl` 가 pip install → `from churn_preproc import preprocess` 정상.
 
 ## 5. 함정들
 
@@ -178,9 +178,9 @@ with mlflow.start_run():
 
 ## 참고
 
-- https://docs.databricks.com/aws/en/machine-learning/model-serving/private-libraries-model-serving
-- https://docs.databricks.com/en/mlflow/log-model-dependencies.html
-- https://mlflow.org/docs/latest/ml/model/dependencies/
-- https://docs.astral.sh/uv/guides/package/
-- https://docs.astral.sh/uv/concepts/projects/init/
-- https://docs.astral.sh/uv/concepts/build-backend/
+- [docs.databricks.com/aws/en/machine-learning/model-serving/private-libraries-model-serving](https://docs.databricks.com/aws/en/machine-learning/model-serving/private-libraries-model-serving)
+- [docs.databricks.com/en/mlflow/log-model-dependencies.html](https://docs.databricks.com/en/mlflow/log-model-dependencies.html)
+- [mlflow.org/docs/latest/ml/model/dependencies/](https://mlflow.org/docs/latest/ml/model/dependencies/)
+- [docs.astral.sh/uv/guides/package/](https://docs.astral.sh/uv/guides/package/)
+- [docs.astral.sh/uv/concepts/projects/init/](https://docs.astral.sh/uv/concepts/projects/init/)
+- [docs.astral.sh/uv/concepts/build-backend/](https://docs.astral.sh/uv/concepts/build-backend/)

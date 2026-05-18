@@ -31,18 +31,18 @@ from databricks.sdk.service.serving import (
 w = WorkspaceClient()
 
 endpoint = w.serving_endpoints.create_and_wait(
-    name="samsung-churn-endpoint",
+    name="churn-endpoint-prod",
     config=EndpointCoreConfigInput(
         served_entities=[
             ServedEntityInput(
                 name="churn-v3",
-                entity_name="main.ml_samsung.churn_model",
+                entity_name="main.ml_demo.churn_model",
                 entity_version="3",
                 workload_size="Small",
                 workload_type="CPU",
                 scale_to_zero_enabled=False,
                 environment_vars={
-                    "AZURE_OPENAI_KEY": "{{secrets/samsung_scope/aoai_key}}",
+                    "AZURE_OPENAI_KEY": "{{secrets/demo_scope/aoai_key}}",
                 },
             )
         ],
@@ -54,12 +54,12 @@ endpoint = w.serving_endpoints.create_and_wait(
     ai_gateway=AiGatewayConfig(
         inference_table_config=AiGatewayInferenceTableConfig(
             enabled=True,
-            catalog_name="main", schema_name="ml_samsung",
+            catalog_name="main", schema_name="ml_demo",
             table_name_prefix="churn_inference",
         ),
         rate_limits=[AiGatewayRateLimit(calls=120, key="endpoint", renewal_period="minute")],
     ),
-    tags=[{"key": "owner", "value": "samsung"}, {"key": "env", "value": "prod"}],
+    tags=[{"key": "owner", "value": "ml-team"}, {"key": "env", "value": "prod"}],
 )
 ```
 
@@ -72,11 +72,11 @@ curl -X POST "$DATABRICKS_HOST/api/2.0/serving-endpoints" \
   -H "Authorization: Bearer $DATABRICKS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "samsung-churn-endpoint",
+    "name": "churn-endpoint-prod",
     "config": {
       "served_entities": [{
         "name": "churn-v3",
-        "entity_name": "main.ml_samsung.churn_model",
+        "entity_name": "main.ml_demo.churn_model",
         "entity_version": "3",
         "workload_size": "Small",
         "workload_type": "CPU",
@@ -109,7 +109,7 @@ URL: `https://<workspace>/serving-endpoints/<name>/invocations`
 import mlflow.deployments
 client = mlflow.deployments.get_deploy_client("databricks")
 resp = client.predict(
-    endpoint="samsung-churn-endpoint",
+    endpoint="churn-endpoint-prod",
     inputs={"dataframe_split": {
         "columns": ["age", "tenure_months", "monthly_charges"],
         "data":    [[42, 18, 89.5], [29, 3, 45.0]],
@@ -122,7 +122,7 @@ print(resp["predictions"])
 
 ```python
 import os, requests
-url = f"{os.environ['DATABRICKS_HOST']}/serving-endpoints/samsung-churn-endpoint/invocations"
+url = f"{os.environ['DATABRICKS_HOST']}/serving-endpoints/churn-endpoint-prod/invocations"
 headers = {"Authorization": f"Bearer {os.environ['DATABRICKS_TOKEN']}",
            "Content-Type": "application/json"}
 payload = {"dataframe_records": [{"age": 42, "tenure_months": 18, "monthly_charges": 89.5}]}
@@ -135,7 +135,7 @@ print(r.json()["predictions"])
 ```python
 from databricks.sdk.service.serving import DataframeSplitInput
 resp = w.serving_endpoints.query(
-    name="samsung-churn-endpoint",
+    name="churn-endpoint-prod",
     dataframe_split=DataframeSplitInput(
         columns=["age", "tenure_months", "monthly_charges"],
         data=[[42, 18, 89.5]],
@@ -143,39 +143,22 @@ resp = w.serving_endpoints.query(
 )
 ```
 
-### Batch 가이드
-
-Model Serving은 low-latency real-time 최적화 (보통 < 1s 왕복, payload **16 MB cap**, request **120s timeout**).
-
-- 소량 배치: 한 요청에 packing
-- 대량 (수백만 row): **`mlflow.pyfunc.spark_udf`** 로 클러스터에서 병렬 점수화
-- 스트리밍: `foreachBatch` 로 호출
-
-```python
-import mlflow
-predict_udf = mlflow.pyfunc.spark_udf(
-    spark, model_uri="models:/main.ml_samsung.churn_model/3", env_manager="virtualenv"
-)
-scored = features_df.withColumn("score", predict_udf(*feature_cols))
-scored.write.mode("overwrite").saveAsTable("main.ml_samsung.churn_scores")
-```
-
 ## 3. 환경변수 & 시크릿
 
 `{{secrets/<scope>/<key>}}` 형식. 배포 시 resolve, plaintext 미저장.
 
 ```bash
-databricks secrets create-scope samsung_scope
-databricks secrets put-secret samsung_scope aoai_key
+databricks secrets create-scope demo_scope
+databricks secrets put-secret demo_scope aoai_key
 ```
 
 ```python
 ServedEntityInput(
-    entity_name="main.ml_samsung.rag_model",
+    entity_name="main.ml_demo.rag_model",
     entity_version="7",
     environment_vars={
-        "AZURE_OPENAI_API_KEY": "{{secrets/samsung_scope/aoai_key}}",
-        "AZURE_OPENAI_ENDPOINT": "https://samsung-aoai.openai.azure.com",
+        "AZURE_OPENAI_API_KEY": "{{secrets/demo_scope/aoai_key}}",
+        "AZURE_OPENAI_ENDPOINT": "https://demo-aoai.openai.azure.com",
     },
 )
 ```
@@ -197,7 +180,7 @@ UC 접근은 PAT 보다 **endpoint의 service principal + UC grant** 권장.
 Serving UI → Metrics 탭: QPS, p50/p95/p99, 4xx/5xx, concurrency, CPU/GPU util.
 
 ```python
-w.serving_endpoints.export_metrics(name="samsung-churn-endpoint")  # Prometheus
+w.serving_endpoints.export_metrics(name="churn-endpoint-prod")  # Prometheus
 ```
 
 ### Rate Limits
@@ -220,11 +203,11 @@ ai_gateway=AiGatewayConfig(
 ```python
 # Step 1 — v3와 v4를 함께 띄우고 v4에 10% canary
 w.serving_endpoints.update_config_and_wait(
-    name="samsung-churn-endpoint",
+    name="churn-endpoint-prod",
     served_entities=[
-        ServedEntityInput(name="churn-v3", entity_name="main.ml_samsung.churn_model",
+        ServedEntityInput(name="churn-v3", entity_name="main.ml_demo.churn_model",
                           entity_version="3", workload_size="Small"),
-        ServedEntityInput(name="churn-v4", entity_name="main.ml_samsung.churn_model",
+        ServedEntityInput(name="churn-v4", entity_name="main.ml_demo.churn_model",
                           entity_version="4", workload_size="Small"),
     ],
     traffic_config=TrafficConfig(routes=[
@@ -235,7 +218,7 @@ w.serving_endpoints.update_config_and_wait(
 
 # Step 2 — p95 / drift 확인 후 100% 컷오버
 w.serving_endpoints.update_config_and_wait(
-    name="samsung-churn-endpoint",
+    name="churn-endpoint-prod",
     traffic_config=TrafficConfig(routes=[
         Route(served_model_name="churn-v3", traffic_percentage=0),
         Route(served_model_name="churn-v4", traffic_percentage=100),
@@ -255,10 +238,10 @@ w.serving_endpoints.update_config_and_wait(
 
 ## 참고
 
-- https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints
-- https://docs.databricks.com/aws/en/machine-learning/model-serving/score-custom-model-endpoints
-- https://docs.databricks.com/aws/en/machine-learning/model-serving/store-env-variable-model-serving
-- https://docs.databricks.com/aws/en/ai-gateway/inference-tables
-- https://docs.databricks.com/aws/en/ai-gateway/configure-ai-gateway-endpoints
-- https://databricks-sdk-py.readthedocs.io/en/latest/workspace/serving/serving_endpoints.html
-- https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-limits
+- [docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints](https://docs.databricks.com/aws/en/machine-learning/model-serving/create-manage-serving-endpoints)
+- [docs.databricks.com/aws/en/machine-learning/model-serving/score-custom-model-endpoints](https://docs.databricks.com/aws/en/machine-learning/model-serving/score-custom-model-endpoints)
+- [docs.databricks.com/aws/en/machine-learning/model-serving/store-env-variable-model-serving](https://docs.databricks.com/aws/en/machine-learning/model-serving/store-env-variable-model-serving)
+- [docs.databricks.com/aws/en/ai-gateway/inference-tables](https://docs.databricks.com/aws/en/ai-gateway/inference-tables)
+- [docs.databricks.com/aws/en/ai-gateway/configure-ai-gateway-endpoints](https://docs.databricks.com/aws/en/ai-gateway/configure-ai-gateway-endpoints)
+- [databricks-sdk-py.readthedocs.io/en/latest/workspace/serving/serving_endpoints.html](https://databricks-sdk-py.readthedocs.io/en/latest/workspace/serving/serving_endpoints.html)
+- [docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-limits](https://docs.databricks.com/aws/en/machine-learning/model-serving/model-serving-limits)
