@@ -1,0 +1,2527 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ko" xml:lang="ko"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Databricks 에서 MLflow 모델 logging → custom 코드 packaging → Model Serving 배포까지 end-to-end 패턴을 단계 × 방식 매트릭스로 정리한 쿡북.">
+
+<title>hadns-on_sessionpptx – Databricks Model Serving Cookbook</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<link href="../../docs/README.html" rel="prev">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-14905817b17f4ae99ca9441a94435373.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-14905817b17f4ae99ca9441a94435373.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-14905817b17f4ae99ca9441a94435373.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-68b07d08084582aa6b196c8eb01feb60.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-a86a3340a6938a9b1ef7c0b42fc3aee3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-68b07d08084582aa6b196c8eb01feb60.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "language": {
+    "search-no-results-text": "일치 없음",
+    "search-matching-documents-text": "일치된 문서",
+    "search-copy-link-title": "검색 링크 복사",
+    "search-hide-matches-text": "추가 검색 결과 숨기기",
+    "search-more-match-text": "추가 검색결과",
+    "search-more-matches-text": "추가 검색결과",
+    "search-clear-button-title": "제거",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "취소",
+    "search-submit-button-title": "검색",
+    "search-label": "검색"
+  }
+}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+
+
+<meta property="og:title" content="Databricks Model Serving Cookbook">
+<meta property="og:image" content="https://aiden-jeon.github.io/databricks-mlflow-model-serving/docs/slides/images/slide10_img01.png">
+<meta property="og:site_name" content="Databricks Model Serving Cookbook">
+<meta property="og:image:height" content="426">
+<meta property="og:image:width" content="1177">
+<meta name="twitter:title" content="Databricks Model Serving Cookbook">
+<meta name="twitter:image" content="https://aiden-jeon.github.io/databricks-mlflow-model-serving/docs/slides/images/slide10_img01.png">
+<meta name="twitter:image-height" content="426">
+<meta name="twitter:image-width" content="1177">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar docked nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Databricks Model Serving Cookbook</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="검색"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="탐색 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="../../index.html" aria-current="page"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../00-foundations/README.html"> 
+<span class="menu-text">00 · Foundations</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-cookbooks" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Cookbooks</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-cookbooks">    
+        <li>
+    <a class="dropdown-item" href="../../01-mlflow-logging/README.html">
+ <span class="dropdown-text">01 · MLflow Logging</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../02-code-packaging/README.html">
+ <span class="dropdown-text">02 · Code Packaging</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../03-model-serving/README.html">
+ <span class="dropdown-text">03 · Model Serving</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" href="../../docs/README.html"> 
+<span class="menu-text">참고 자료</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="다크 모드 전환"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../docs/README.html">참고 자료</a></li><li class="breadcrumb-item"><a href="../../docs/slides/250530_Hadns-on_Sessionpptx.html">DatabricksHands-on Session</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="사이드바 전환" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Home</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../../00-foundations/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">00 · Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Concepts</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../00-foundations/concepts-mlflow-logging.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MLflow Model Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../00-foundations/concepts-model-serving.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Model Serving</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../00-foundations/concepts-uv-wheel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">uv + Wheel 패키징</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../00-foundations/concepts-express-deploy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Express Deployment</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Environment</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../00-foundations/env-databricks-environments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Databricks 환경</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../../01-mlflow-logging/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">01 · MLflow Logging</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../01-mlflow-logging/00-setup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">00 · Setup</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../01-mlflow-logging/01-flavor-logging.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">01 · Flavor Logging</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../01-mlflow-logging/02-pyfunc-custom.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">02 · PyFunc Custom Model</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../01-mlflow-logging/03-dependencies.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">03 · Dependency Management</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../../02-code-packaging/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">02 · Code Packaging</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../02-code-packaging/01-code-paths.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">04 · code_paths</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../02-code-packaging/02-uv-wheel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">05 · uv + Wheel</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../../03-model-serving/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">03 · Model Serving</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../03-model-serving/01-model-serving.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">06 · Model Serving</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../03-model-serving/02-express-deployment.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">07 · Express Deployment</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../03-model-serving/99-cleanup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">99 · Cleanup</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../../docs/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">참고 자료</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../docs/slides/250530_Hadns-on_Sessionpptx.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">DatabricksHands-on Session</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">목차</h2>
+   
+  <ul>
+  <li><a href="#databricks-hands-on-session" id="toc-databricks-hands-on-session" class="nav-link active" data-scroll-target="#databricks-hands-on-session">DatabricksHands-on Session</a>
+  <ul class="collapse">
+  <li><a href="#slide-2-databricks-data-intelligence-platform" id="toc-slide-2-databricks-data-intelligence-platform" class="nav-link" data-scroll-target="#slide-2-databricks-data-intelligence-platform">Slide 2: Databricks Data Intelligence Platform</a></li>
+  <li><a href="#slide-3-databricks-data-intelligence-platform" id="toc-slide-3-databricks-data-intelligence-platform" class="nav-link" data-scroll-target="#slide-3-databricks-data-intelligence-platform">Slide 3: Databricks Data Intelligence Platform</a></li>
+  <li><a href="#slide-4-databricks-machine-learning" id="toc-slide-4-databricks-machine-learning" class="nav-link" data-scroll-target="#slide-4-databricks-machine-learning">Slide 4: Databricks Machine Learning</a></li>
+  <li><a href="#slide-5-databricks-ml-runtime" id="toc-slide-5-databricks-ml-runtime" class="nav-link" data-scroll-target="#slide-5-databricks-ml-runtime">Slide 5: Databricks ML Runtime</a></li>
+  <li><a href="#slide-6-databricks-ml-runtime" id="toc-slide-6-databricks-ml-runtime" class="nav-link" data-scroll-target="#slide-6-databricks-ml-runtime">Slide 6: Databricks ML Runtime</a></li>
+  <li><a href="#slide-8-databricks-mlflow" id="toc-slide-8-databricks-mlflow" class="nav-link" data-scroll-target="#slide-8-databricks-mlflow">Slide 8: Databricks MLflow</a></li>
+  <li><a href="#slide-9-소프트웨어-개발과-ml-모델-개발의-비교" id="toc-slide-9-소프트웨어-개발과-ml-모델-개발의-비교" class="nav-link" data-scroll-target="#slide-9-소프트웨어-개발과-ml-모델-개발의-비교">Slide 9: 소프트웨어 개발과 ML 모델 개발의 비교</a></li>
+  <li><a href="#slide-10-ml-lifecycle-management" id="toc-slide-10-ml-lifecycle-management" class="nav-link" data-scroll-target="#slide-10-ml-lifecycle-management">Slide 10: ML Lifecycle Management</a></li>
+  <li><a href="#slide-11-databricks-model-registry" id="toc-slide-11-databricks-model-registry" class="nav-link" data-scroll-target="#slide-11-databricks-model-registry">Slide 11: Databricks’ Model Registry</a></li>
+  <li><a href="#slide-12-databricks-model-deployment" id="toc-slide-12-databricks-model-deployment" class="nav-link" data-scroll-target="#slide-12-databricks-model-deployment">Slide 12: Databricks’ Model Deployment</a></li>
+  <li><a href="#slide-13-databricks-mlflow" id="toc-slide-13-databricks-mlflow" class="nav-link" data-scroll-target="#slide-13-databricks-mlflow">Slide 13: Databricks’ MLflow</a></li>
+  <li><a href="#slide-14-databricks-mlflow" id="toc-slide-14-databricks-mlflow" class="nav-link" data-scroll-target="#slide-14-databricks-mlflow">Slide 14: Databricks’ MLflow</a></li>
+  <li><a href="#slide-15-databricks-mlflow" id="toc-slide-15-databricks-mlflow" class="nav-link" data-scroll-target="#slide-15-databricks-mlflow">Slide 15: Databricks’ MLflow</a></li>
+  <li><a href="#slide-17-compute-setting" id="toc-slide-17-compute-setting" class="nav-link" data-scroll-target="#slide-17-compute-setting">Slide 17: Compute Setting</a></li>
+  <li><a href="#slide-18-workspace-setting" id="toc-slide-18-workspace-setting" class="nav-link" data-scroll-target="#slide-18-workspace-setting">Slide 18: Workspace Setting</a></li>
+  <li><a href="#slide-19-workspace-setting" id="toc-slide-19-workspace-setting" class="nav-link" data-scroll-target="#slide-19-workspace-setting">Slide 19: Workspace Setting</a></li>
+  <li><a href="#slide-20-dataset" id="toc-slide-20-dataset" class="nav-link" data-scroll-target="#slide-20-dataset">Slide 20: Dataset</a></li>
+  <li><a href="#slide-21-dataset" id="toc-slide-21-dataset" class="nav-link" data-scroll-target="#slide-21-dataset">Slide 21: Dataset</a></li>
+  <li><a href="#slide-22-dataset" id="toc-slide-22-dataset" class="nav-link" data-scroll-target="#slide-22-dataset">Slide 22: Dataset</a></li>
+  <li><a href="#slide-23-00-download-data" id="toc-slide-23-00-download-data" class="nav-link" data-scroll-target="#slide-23-00-download-data">Slide 23: 00-Download Data</a></li>
+  <li><a href="#slide-25-01-files-to-table" id="toc-slide-25-01-files-to-table" class="nav-link" data-scroll-target="#slide-25-01-files-to-table">Slide 25: 01-Files to Table</a></li>
+  <li><a href="#slide-27-03-users-collaborative-filtering" id="toc-slide-27-03-users-collaborative-filtering" class="nav-link" data-scroll-target="#slide-27-03-users-collaborative-filtering">Slide 27: 03-Users Collaborative Filtering</a></li>
+  <li><a href="#slide-28-02-games-content-based-filtering" id="toc-slide-28-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-28-02-games-content-based-filtering">Slide 28: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-29-02-games-content-based-filtering" id="toc-slide-29-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-29-02-games-content-based-filtering">Slide 29: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-30-02-games-content-based-filtering" id="toc-slide-30-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-30-02-games-content-based-filtering">Slide 30: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-31-02-games-content-based-filtering" id="toc-slide-31-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-31-02-games-content-based-filtering">Slide 31: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-32-02-games-content-based-filtering" id="toc-slide-32-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-32-02-games-content-based-filtering">Slide 32: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-33-02-games-content-based-filtering" id="toc-slide-33-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-33-02-games-content-based-filtering">Slide 33: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-34-02-games-content-based-filtering" id="toc-slide-34-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-34-02-games-content-based-filtering">Slide 34: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-35-02-games-content-based-filtering" id="toc-slide-35-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-35-02-games-content-based-filtering">Slide 35: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-36-02-games-content-based-filtering" id="toc-slide-36-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-36-02-games-content-based-filtering">Slide 36: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-37-02-games-content-based-filtering" id="toc-slide-37-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-37-02-games-content-based-filtering">Slide 37: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-38-02-games-content-based-filtering" id="toc-slide-38-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-38-02-games-content-based-filtering">Slide 38: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-39-mlflow-model" id="toc-slide-39-mlflow-model" class="nav-link" data-scroll-target="#slide-39-mlflow-model">Slide 39: Mlflow Model</a></li>
+  <li><a href="#slide-40-mlflow-model" id="toc-slide-40-mlflow-model" class="nav-link" data-scroll-target="#slide-40-mlflow-model">Slide 40: Mlflow Model</a></li>
+  <li><a href="#slide-41-mlflow-model" id="toc-slide-41-mlflow-model" class="nav-link" data-scroll-target="#slide-41-mlflow-model">Slide 41: Mlflow Model</a></li>
+  <li><a href="#slide-42-mlflow-model" id="toc-slide-42-mlflow-model" class="nav-link" data-scroll-target="#slide-42-mlflow-model">Slide 42: Mlflow Model</a></li>
+  <li><a href="#slide-43-02-games-content-based-filtering" id="toc-slide-43-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-43-02-games-content-based-filtering">Slide 43: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-44-02-games-content-based-filtering" id="toc-slide-44-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-44-02-games-content-based-filtering">Slide 44: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-45-02-games-content-based-filtering" id="toc-slide-45-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-45-02-games-content-based-filtering">Slide 45: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-46-02-games-content-based-filtering" id="toc-slide-46-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-46-02-games-content-based-filtering">Slide 46: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-47-02-games-content-based-filtering" id="toc-slide-47-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-47-02-games-content-based-filtering">Slide 47: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-48-02-games-content-based-filtering" id="toc-slide-48-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-48-02-games-content-based-filtering">Slide 48: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-49-02-games-content-based-filtering" id="toc-slide-49-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-49-02-games-content-based-filtering">Slide 49: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-50-02-games-content-based-filtering" id="toc-slide-50-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-50-02-games-content-based-filtering">Slide 50: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-51-02-games-content-based-filtering" id="toc-slide-51-02-games-content-based-filtering" class="nav-link" data-scroll-target="#slide-51-02-games-content-based-filtering">Slide 51: 02-Games Content-Based Filtering</a></li>
+  <li><a href="#slide-53-03-users-collaborative-filtering" id="toc-slide-53-03-users-collaborative-filtering" class="nav-link" data-scroll-target="#slide-53-03-users-collaborative-filtering">Slide 53: 03-Users Collaborative Filtering</a></li>
+  <li><a href="#slide-54-03-users-collaborative-filtering" id="toc-slide-54-03-users-collaborative-filtering" class="nav-link" data-scroll-target="#slide-54-03-users-collaborative-filtering">Slide 54: 03-Users Collaborative Filtering</a></li>
+  <li><a href="#slide-55-03-users-collaborative-filtering" id="toc-slide-55-03-users-collaborative-filtering" class="nav-link" data-scroll-target="#slide-55-03-users-collaborative-filtering">Slide 55: 03-Users Collaborative Filtering</a></li>
+  <li><a href="#slide-56-03-users-collaborative-filtering" id="toc-slide-56-03-users-collaborative-filtering" class="nav-link" data-scroll-target="#slide-56-03-users-collaborative-filtering">Slide 56: 03-Users Collaborative Filtering</a></li>
+  <li><a href="#slide-57-03-users-collaborative-filtering" id="toc-slide-57-03-users-collaborative-filtering" class="nav-link" data-scroll-target="#slide-57-03-users-collaborative-filtering">Slide 57: 03-Users Collaborative Filtering</a></li>
+  <li><a href="#slide-58-03-users-collaborative-filtering" id="toc-slide-58-03-users-collaborative-filtering" class="nav-link" data-scroll-target="#slide-58-03-users-collaborative-filtering">Slide 58: 03-Users Collaborative Filtering</a></li>
+  <li><a href="#slide-59-03-users-collaborative-filtering" id="toc-slide-59-03-users-collaborative-filtering" class="nav-link" data-scroll-target="#slide-59-03-users-collaborative-filtering">Slide 59: 03-Users Collaborative Filtering</a></li>
+  <li><a href="#slide-60-mlflow-depdency-management" id="toc-slide-60-mlflow-depdency-management" class="nav-link" data-scroll-target="#slide-60-mlflow-depdency-management">Slide 60: Mlflow Depdency Management</a></li>
+  <li><a href="#slide-61-mlflow-depdency-management" id="toc-slide-61-mlflow-depdency-management" class="nav-link" data-scroll-target="#slide-61-mlflow-depdency-management">Slide 61: Mlflow Depdency Management</a></li>
+  <li><a href="#slide-62-mlflow-depdency-management" id="toc-slide-62-mlflow-depdency-management" class="nav-link" data-scroll-target="#slide-62-mlflow-depdency-management">Slide 62: Mlflow Depdency Management</a></li>
+  <li><a href="#slide-63-mlflow-depdency-management" id="toc-slide-63-mlflow-depdency-management" class="nav-link" data-scroll-target="#slide-63-mlflow-depdency-management">Slide 63: Mlflow Depdency Management</a></li>
+  <li><a href="#slide-64-03-users-collaborative-filtering" id="toc-slide-64-03-users-collaborative-filtering" class="nav-link" data-scroll-target="#slide-64-03-users-collaborative-filtering">Slide 64: 03-Users Collaborative Filtering</a></li>
+  <li><a href="#slide-66-04-feature-store-baseline" id="toc-slide-66-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-66-04-feature-store-baseline">Slide 66: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-67-04-feature-store-baseline" id="toc-slide-67-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-67-04-feature-store-baseline">Slide 67: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-68-04-feature-store-baseline" id="toc-slide-68-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-68-04-feature-store-baseline">Slide 68: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-69-04-feature-store-baseline" id="toc-slide-69-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-69-04-feature-store-baseline">Slide 69: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-70-04-feature-store-baseline" id="toc-slide-70-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-70-04-feature-store-baseline">Slide 70: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-71-04-feature-store-baseline" id="toc-slide-71-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-71-04-feature-store-baseline">Slide 71: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-72-04-feature-store-baseline" id="toc-slide-72-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-72-04-feature-store-baseline">Slide 72: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-73-04-feature-store-baseline" id="toc-slide-73-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-73-04-feature-store-baseline">Slide 73: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-74-04-feature-store-baseline" id="toc-slide-74-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-74-04-feature-store-baseline">Slide 74: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-75-key-concepts-in-tracking" id="toc-slide-75-key-concepts-in-tracking" class="nav-link" data-scroll-target="#slide-75-key-concepts-in-tracking">Slide 75: Key Concepts in Tracking</a></li>
+  <li><a href="#slide-76-mlflow-tracking" id="toc-slide-76-mlflow-tracking" class="nav-link" data-scroll-target="#slide-76-mlflow-tracking">Slide 76: Mlflow tracking</a></li>
+  <li><a href="#slide-77-mlflow-tracking" id="toc-slide-77-mlflow-tracking" class="nav-link" data-scroll-target="#slide-77-mlflow-tracking">Slide 77: Mlflow tracking</a></li>
+  <li><a href="#slide-78-mlflow-tracking" id="toc-slide-78-mlflow-tracking" class="nav-link" data-scroll-target="#slide-78-mlflow-tracking">Slide 78: Mlflow tracking</a></li>
+  <li><a href="#slide-79" id="toc-slide-79" class="nav-link" data-scroll-target="#slide-79">Slide 79</a></li>
+  <li><a href="#slide-80-04-feature-store-baseline" id="toc-slide-80-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-80-04-feature-store-baseline">Slide 80: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-81-04-feature-store-baseline" id="toc-slide-81-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-81-04-feature-store-baseline">Slide 81: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-82-04-feature-store-baseline" id="toc-slide-82-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-82-04-feature-store-baseline">Slide 82: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-83-04-feature-store-baseline" id="toc-slide-83-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-83-04-feature-store-baseline">Slide 83: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-84-04-feature-store-baseline" id="toc-slide-84-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-84-04-feature-store-baseline">Slide 84: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-85-04-feature-store-baseline" id="toc-slide-85-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-85-04-feature-store-baseline">Slide 85: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-86-04-feature-store-baseline" id="toc-slide-86-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-86-04-feature-store-baseline">Slide 86: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-87-04-feature-store-baseline" id="toc-slide-87-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-87-04-feature-store-baseline">Slide 87: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-88-04-feature-store-baseline" id="toc-slide-88-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-88-04-feature-store-baseline">Slide 88: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-89-04-feature-store-baseline" id="toc-slide-89-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-89-04-feature-store-baseline">Slide 89: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-90-04-feature-store-baseline" id="toc-slide-90-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-90-04-feature-store-baseline">Slide 90: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-91-04-feature-store-baseline" id="toc-slide-91-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-91-04-feature-store-baseline">Slide 91: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-92-04-feature-store-baseline" id="toc-slide-92-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-92-04-feature-store-baseline">Slide 92: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-93-04-feature-store-baseline" id="toc-slide-93-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-93-04-feature-store-baseline">Slide 93: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-94-04-feature-store-baseline" id="toc-slide-94-04-feature-store-baseline" class="nav-link" data-scroll-target="#slide-94-04-feature-store-baseline">Slide 94: 04-Feature Store Baseline</a></li>
+  <li><a href="#slide-96-05-automl" id="toc-slide-96-05-automl" class="nav-link" data-scroll-target="#slide-96-05-automl">Slide 96: 05-Automl</a></li>
+  <li><a href="#slide-97-databricks-automl" id="toc-slide-97-databricks-automl" class="nav-link" data-scroll-target="#slide-97-databricks-automl">Slide 97: Databricks AutoML</a></li>
+  <li><a href="#slide-98-automl-on-databricks" id="toc-slide-98-automl-on-databricks" class="nav-link" data-scroll-target="#slide-98-automl-on-databricks">Slide 98: AutoML on Databricks</a></li>
+  <li><a href="#slide-99-glassbox-automl" id="toc-slide-99-glassbox-automl" class="nav-link" data-scroll-target="#slide-99-glassbox-automl">Slide 99: Glassbox AutoML</a></li>
+  <li><a href="#slide-100-05-automl" id="toc-slide-100-05-automl" class="nav-link" data-scroll-target="#slide-100-05-automl">Slide 100: 05-Automl</a></li>
+  <li><a href="#slide-101-05-automl" id="toc-slide-101-05-automl" class="nav-link" data-scroll-target="#slide-101-05-automl">Slide 101: 05-Automl</a></li>
+  <li><a href="#slide-102-05-automl" id="toc-slide-102-05-automl" class="nav-link" data-scroll-target="#slide-102-05-automl">Slide 102: 05-Automl</a></li>
+  <li><a href="#slide-103-05-automl" id="toc-slide-103-05-automl" class="nav-link" data-scroll-target="#slide-103-05-automl">Slide 103: 05-Automl</a></li>
+  <li><a href="#slide-104-05-automl" id="toc-slide-104-05-automl" class="nav-link" data-scroll-target="#slide-104-05-automl">Slide 104: 05-Automl</a></li>
+  <li><a href="#slide-105-05-automl" id="toc-slide-105-05-automl" class="nav-link" data-scroll-target="#slide-105-05-automl">Slide 105: 05-Automl</a></li>
+  <li><a href="#slide-106-05-automl" id="toc-slide-106-05-automl" class="nav-link" data-scroll-target="#slide-106-05-automl">Slide 106: 05-Automl</a></li>
+  <li><a href="#slide-107-05-automl" id="toc-slide-107-05-automl" class="nav-link" data-scroll-target="#slide-107-05-automl">Slide 107: 05-Automl</a></li>
+  <li><a href="#slide-109-06-advanced-user-cold-start" id="toc-slide-109-06-advanced-user-cold-start" class="nav-link" data-scroll-target="#slide-109-06-advanced-user-cold-start">Slide 109: 06-Advanced User Cold Start</a></li>
+  <li><a href="#slide-110-06-advanced-user-cold-start" id="toc-slide-110-06-advanced-user-cold-start" class="nav-link" data-scroll-target="#slide-110-06-advanced-user-cold-start">Slide 110: 06-Advanced User Cold Start</a></li>
+  <li><a href="#slide-111-06-advanced-user-cold-start" id="toc-slide-111-06-advanced-user-cold-start" class="nav-link" data-scroll-target="#slide-111-06-advanced-user-cold-start">Slide 111: 06-Advanced User Cold Start</a></li>
+  <li><a href="#slide-113-databricks-lakehouse-monitoring" id="toc-slide-113-databricks-lakehouse-monitoring" class="nav-link" data-scroll-target="#slide-113-databricks-lakehouse-monitoring">Slide 113: Databricks Lakehouse Monitoring</a></li>
+  <li><a href="#slide-114-monitor-all-tables-in-your-lakehouse" id="toc-slide-114-monitor-all-tables-in-your-lakehouse" class="nav-link" data-scroll-target="#slide-114-monitor-all-tables-in-your-lakehouse">Slide 114: Monitor all tables in your lakehouse</a></li>
+  <li><a href="#slide-115-monitoring-a-table-in-the-lakehouse" id="toc-slide-115-monitoring-a-table-in-the-lakehouse" class="nav-link" data-scroll-target="#slide-115-monitoring-a-table-in-the-lakehouse">Slide 115: Monitoring a table in the Lakehouse</a></li>
+  <li><a href="#slide-116-built-on-unity-catalog" id="toc-slide-116-built-on-unity-catalog" class="nav-link" data-scroll-target="#slide-116-built-on-unity-catalog">Slide 116: Built on Unity Catalog</a></li>
+  <li><a href="#slide-117-data-drift" id="toc-slide-117-data-drift" class="nav-link" data-scroll-target="#slide-117-data-drift">Slide 117: Data Drift</a></li>
+  <li><a href="#slide-118-data-drift" id="toc-slide-118-data-drift" class="nav-link" data-scroll-target="#slide-118-data-drift">Slide 118: Data Drift</a></li>
+  <li><a href="#slide-119-07-quality-monitoring" id="toc-slide-119-07-quality-monitoring" class="nav-link" data-scroll-target="#slide-119-07-quality-monitoring">Slide 119: 07-Quality Monitoring</a></li>
+  <li><a href="#slide-120-07-quality-monitoring" id="toc-slide-120-07-quality-monitoring" class="nav-link" data-scroll-target="#slide-120-07-quality-monitoring">Slide 120: 07-Quality Monitoring</a></li>
+  <li><a href="#slide-121-07-quality-monitoring" id="toc-slide-121-07-quality-monitoring" class="nav-link" data-scroll-target="#slide-121-07-quality-monitoring">Slide 121: 07-Quality Monitoring</a></li>
+  <li><a href="#slide-122-07-quality-monitoring" id="toc-slide-122-07-quality-monitoring" class="nav-link" data-scroll-target="#slide-122-07-quality-monitoring">Slide 122: 07-Quality Monitoring</a></li>
+  <li><a href="#slide-123-07-quality-monitoring" id="toc-slide-123-07-quality-monitoring" class="nav-link" data-scroll-target="#slide-123-07-quality-monitoring">Slide 123: 07-Quality Monitoring</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/Aiden-Jeon/databricks-mlflow-model-serving/edit/main/docs/slides/250530_Hadns-on_Sessionpptx.md" class="toc-action"><i class="bi bi-github"></i>편집</a></li><li><a href="https://github.com/Aiden-Jeon/databricks-mlflow-model-serving/blob/main/docs/slides/250530_Hadns-on_Sessionpptx.md" class="toc-action"><i class="bi empty"></i>소스코드 보기</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../docs/README.html">참고 자료</a></li><li class="breadcrumb-item"><a href="../../docs/slides/250530_Hadns-on_Sessionpptx.html">DatabricksHands-on Session</a></li></ol></nav></header>
+
+
+
+
+
+<section id="databricks-hands-on-session" class="level1">
+<h1>DatabricksHands-on Session</h1>
+<blockquote class="blockquote">
+<p><strong>Slides:</strong> 124 | <strong>Source:</strong> https://docs.google.com/presentation/d/12gvoApL_qdhgEKMy19n9pz1x4xrLr5uW/edit | <strong>Images:</strong> 136</p>
+<p><strong>Images are saved alongside this file in <code>./images/</code>.</strong> These contain architecture diagrams, flowcharts, and screenshots that are essential context. To analyze a visual, read the image file directly (e.g., <code>Read ./images/slide07_img01.png</code>).</p>
+</blockquote>
+<hr>
+<section id="slide-2-databricks-data-intelligence-platform" class="level2">
+<h2 class="anchored" data-anchor-id="slide-2-databricks-data-intelligence-platform">Slide 2: Databricks Data Intelligence Platform</h2>
+<p>소개 &lt; Databricks 논리 아키텍처 &gt;</p>
+<p>Databricks Data Intelligence Platform이란? 대규모 엔터프라이즈급 데이터의 수집, 저장, 처리, 공유, 분석을 통합하는 데이터 플랫폼 사용자의 퍼블릭 클라우드 환경에 배포되어 사용자 계정의 저장소 및 보안과 통합 Amazon Web Services, Microsoft Azure, Google Cloud Platform에 배포 지원</p>
+<p>데이터 거버넌스Unity Catalog</p>
+<p>데이터 과학 &amp; 생성형 AIMosaic AI ELT &amp; 실시간 분석DLT 오케스트레이션Workflow 데이터 웨어하우징Databricks SQL Databricks와 Open Technologies Databricks는 오픈소스 및 개방형 표준을 지향 Databricks주도로 설립된 오픈소스 : Apache Spark, Delta Lake, MLflow, Redash Databricks는 개방형 기술을 보다 최적화하여 성능향상과 사용편의성 증대를 위한 Workflows, Unity Catalog, Delta Live Tables, Photon 등의 독점적 기능을 제공 머신러닝 모델 운영관리</p>
+<p>데이터 처리 엔진</p>
+<p>스토리지 프레임워크</p>
+<p>Databricks의 주요 용도 엔터프라이즈 데이터 레이크 하우스 구축, ETL 및 데이터 엔지니어링, 데이터 웨어하우스 구축 인공지능 분석, 비즈니스 인텔리전스 분석, 실시간 스트리밍 분석 클라우드 스토리지 (S3, ADLS2, GCS)</p>
+<hr>
+</section>
+<section id="slide-3-databricks-data-intelligence-platform" class="level2">
+<h2 class="anchored" data-anchor-id="slide-3-databricks-data-intelligence-platform">Slide 3: Databricks Data Intelligence Platform</h2>
+<p>사용 주체 별 용도</p>
+<p>데이터 엔지니어 데이터의 수집, 저장, 처리 작업을 수행하기위해 데이터 파이프인을 구축하고 데이터의 보안과 활용에 대한 규정을 관리하는 역할 데이터 분석가 정제된 데이터를 활용하여 OLAP 분석 모델을 생성하고 BI도구, 시각화도구, SQL을 통해 데이터의 차원을 회전하며 데이터를 분석하는 역할 데이터 사이언티스트 정제된 데이터를 활용하여 특징변수를 관리하고 추론통계, 머신러닝, 딥러닝 모형을 작성하여 데이터를 분석하는 역할 적용 업무 RDBMS 또는 DW의 데이터를 Databricks로 적재하여 레이크하우스 시스템 구축 비정형 파일을 Databricks 저장소로 적재하여 머신러닝/딥러닝 분석 시스템 구축 배치 업무와 스트리밍 업무를 Databricks 플랫폼으로 통합하여 플랫폼 단일화 ETL / CDC / ML 워크로드를 단일 작업으로 연속성 있게 구성하여 워크플로우 통합 적용 업무 RDBMS, DW, File, NoSQL등의 소스 데이터가 통합된 레이크하우스 시스템에서 SQL을 통한 다차원 분석 시스템 구축 Tableau, Power BI, Microstrategy등 외부 BI 솔루션을 연계한 분석 시스템 구축 자체 대시보드 기능을 통해 업무별 대시보드를 생성하고 공유하는 환경 구성 DW 시스템의 경험과 동일한 SQL개발 환경 적용 업무 과거 데이터로부터 미래의 상황을 예측하는 머신러닝 예측 분석 시스템 구축 비정형 데이터로부터 상황을 인식하고, 분류하는 딥러닝 예측 분석 시스템 구축 GPU를 활용하여 텍스트로부터 텍스트 또는 이미지를 생성하는 생성형 AI 시스템 구축 시티즌 데이터사이언티스트를 위한 AutoML 기반의 대중화된 머신러닝 분석플랫폼 구축</p>
+<hr>
+</section>
+<section id="slide-4-databricks-machine-learning" class="level2">
+<h2 class="anchored" data-anchor-id="slide-4-databricks-machine-learning">Slide 4: Databricks Machine Learning</h2>
+<p>개요 Databricks Mosaic AI Databricks Mosaic AI는 Databricks AI/ML과 MosaicML을 통합한 개념 ML(Machine Learning), DL(Deep Learning), GenAI(Generative AI) 모든 워크로드를 단일 플랫폼에서 개발 Databricks Mosaic AI 기능은 ML워크로드를 개발하고 ML워크플로우를 구축하기위한 다양한 기능을 제공 Data - Unity Catalog Model training - AutoML - Notebooks - MLflow experiments Model management - Unity Catalog - Workspace Model Registry Feature Store - Feature serving Lakehouse Monitoring - Data quality metrics - Model quality metrics - Drift Production - Model serving - Batch inference 모델 개발을 위한 Databricks Mosaic AI의 특장점 데이터세트, 피처, 모델에 대한 Unity Catalog 거버넌스 지원 Lakehouse Monitoring을 통한 데이터 모니터링 지원 피처 엔지니어링 지원 모델 생명주기 관리 모델 서빙 지원 워크플로우 생성 지원 Git 통합 지원</p>
+<hr>
+</section>
+<section id="slide-5-databricks-ml-runtime" class="level2">
+<h2 class="anchored" data-anchor-id="slide-5-databricks-ml-runtime">Slide 5: Databricks ML Runtime</h2>
+<p>Machine Learning 개발을 위한 Databricks Runtime ML Databricks는 All-Purpose Cluster에서 Standard Runtime과 ML Runtime을 지원 Runtime ML은 ML/DL/GenAI 개발을 위한 전용 런타임으로 다양한 ML/DL/GenAI 라이브러리를 지원 Runtime ML은 CPU / GPU 런타임을 지원 Runtime ML은 ML워크로드의 특성으로 인해 공유 클러스터 모드를 지원하지 않음</p>
+<p>Databricks Runtime ML과 Photon Runtime ML에서 Photon을 사용하기 위해서는 15.2ML 이상의 런타임이 필요하며 워크로드에 따라 활성화를 고려 Photon은 Spark SQL, Spark DataFrames, feature engineering, GraphFrames, xgboost4j 에서만 성능향상 효과를 볼 수 있음 Photon이 지원하지 않는 Spark RDD, Pandas UDF에서는 성능 효과를 볼 수 없음 XGBoost, PyTorch, TensorFlow 등의 non-JVM기반의 네이티브 Python 언어에서는 효과를 볼 수 없음</p>
+<hr>
+</section>
+<section id="slide-6-databricks-ml-runtime" class="level2">
+<h2 class="anchored" data-anchor-id="slide-6-databricks-ml-runtime">Slide 6: Databricks ML Runtime</h2>
+<p>딥러닝과 생성형 AI 지원 Deep Learning 개발을 위한 Databricks ML Runtime Tensorflow, Keras, PyTorch 딥러닝 라이브러리 지원 딥러닝 라이브러리의 MLflow 통합 지원 Petastorm, Hyperopt, Horovod, Ray 분산처리 라이브러리 지원 GPU라이브러리가 사전 구성된 GPU 런타임 제공 딥러닝 모델 서빙을 위한 GPU 엔드포인트 지원(지정 리전)</p>
+<p>LLM등 GenAI 개발을 위한 Databricks ML Runtime GenAI 모델 개발을위해 Hugging Face Transformers, LangChain 라이브러리 지원 Transformers 파이프라인, 모델, 프로세싱 컴포넌트를 위한 MLflow 통합 지원 Hugging Face, DeepSpeed 오픈소스 도구를 사용하여 사용자 데이터세트로 훈련 가능 Databricks가 관리형으로 제공하는 파운데이션 모델 API를 제공(DBRX, Llama3, BGE 등) 타사 서비스에서 제공하는 외부 모델을 등록 가능(OpenAI, Bedrock, Anthropic 등)</p>
+<hr>
+</section>
+<section id="slide-8-databricks-mlflow" class="level2">
+<h2 class="anchored" data-anchor-id="slide-8-databricks-mlflow">Slide 8: Databricks MLflow</h2>
+<p>딥러닝과 생성형 AI 지원 MLflow란? ML 모델을 개발의 생명주기에서 모델, 피처, 평가지표를 효율적으로 관리할 수 있도록 지원하는 오픈소스 MLOps 프레임워크 Databricks MLflow는 특정 ML 프레임워크에 종속되지 않고 SparkML, ScikitLearn, XGBoost 등 다양한 프레임워크의 ML관리를 지원 Databricks MLflow는 Databricks에서 관리형으로 서비스 되기 때문에 별도의 MLflow 운영을 위한 호스팅 관리가 필요 없음 Databricks Notebook을 통합하여 ML모델에서 바로 해당되는 Notebook을 확인 Python, Java, R, Rest API를 지원 Unity Catalog 와의 통합으로 모델의 접근에 대한 권한제어를 통해 모델 거버넌스 달성</p>
+<hr>
+</section>
+<section id="slide-9-소프트웨어-개발과-ml-모델-개발의-비교" class="level2">
+<h2 class="anchored" data-anchor-id="slide-9-소프트웨어-개발과-ml-모델-개발의-비교">Slide 9: 소프트웨어 개발과 ML 모델 개발의 비교</h2>
+<p>목표 소프트웨어 개발 ML모델 개발 기능 스펙 충족 평가지표 최적화 코드 작성 데이터 탐색</p>
+<p>유닛 테스트 품질 데이터 전처리 코드의 품질에 좌우 데이터, 코드, 파라미터 품질에 좌우 리뷰 요청 모델 코드 작성 승인 획득 모델 학습 및 평가 도구 코드 커밋 단일 컴파일러, IDE를 활용 다양한 라이브러리와 프레임워크를 활용 모델구조와 하이퍼파라미터 튜닝 릴리즈 테스트 모델 배포 결과물 확정적으로 작동 데이터 트렌드에따라 변화 코드 릴리즈 성능 모니터링 및 재학습</p>
+<hr>
+</section>
+<section id="slide-10-ml-lifecycle-management" class="level2">
+<h2 class="anchored" data-anchor-id="slide-10-ml-lifecycle-management">Slide 10: ML Lifecycle Management</h2>
+<p>Mlflow 가 제공하는 기능 추적(Tracking) : 실험을 추적하여 매개변수와 결과를 기록하고 비교 모델(Models) : 다양한 ML 라이브러리로부터 생성된 모델을 관리 및 배포 프로젝트(Projects) : ML 코드를 재사용 및 재현 가능한 형태로 패키징하여 공유하거나 프로덕션 환경으로 전송 모델 레지스트리(Model Registry) : 스테이징에서 프로덕션까지 모델의 전체 수명주기를 관리하기 위해 모델 저장소를 중앙 집중화 모델 서빙(Model Serving) : MLflow 모델을 REST 엔드포인트로 제공</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide10_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 10 image (10.2” x 2.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-11-databricks-model-registry" class="level2">
+<h2 class="anchored" data-anchor-id="slide-11-databricks-model-registry">Slide 11: Databricks’ Model Registry</h2>
+<p>모델 수명주기 관리 MLflow 모델 레지스트리는 MLflow 모델의 전체 수명주기를 관리하는 중앙 집중식 모델 리포지토리 MLflow 모델 레지스트리 기능은 Unity Catalog내에서 GUI와 API를 통해 활용 가능</p>
+<p>모델 레지스트리 개념 모델(Model) : 실험이나 실행에서 기록된 MLflow 모델로 모델 레지스트리에 등록가능한 모델 객체 등록된 모델(Registered Model) : 모델 레지스트리에 등록된 MLflow 모델로 고유한 이름, 버전, 모델 계보, 기타 메타데이터가 포함 모델 버전(Model Version) : 등록된 모델의 버전으로 버전이 증가할때마다 모델의 버전번호 증가 모델 별칭(Model Alias) : 별칭은 등록된 모델의 특정 버전에 대한 변경 가능한 이름 모델 단계(Model Stage) : 모델의 각 단계(None , Staging , Production, Archived)를 지정 및 전환. 모델 단계는 Workspace Model Registry 레거시 기능으로, Unity Catalog환경 에서는 사용되지 않음 설명(Description) : 모델에 대한 설명 또는 추가적인 정보를 기재</p>
+<hr>
+</section>
+<section id="slide-12-databricks-model-deployment" class="level2">
+<h2 class="anchored" data-anchor-id="slide-12-databricks-model-deployment">Slide 12: Databricks’ Model Deployment</h2>
+<p>Databricks 모델 서빙 Databricks Model Serving은 AI 모델을 배포, 관리 및 쿼리할 수 있는 통합 인터페이스를 제공 각 모델은 웹 또는 클라이언트 애플리케이션에 통합할 수 있는 REST API로 제공</p>
+<p>모델 서빙 유형 커스텀 모델(Custom Models)- MLflow 형식으로 패키지된 사용자가 직접 개발한 Python 모델- Unity Catalog(또는 Workspace Model Registry)에 등록- scikit-learn, XGBoost, PyTorch, Hugging Face Transformer를 활용하여 생성된 모델 Foundation Model API- Databricks가 관리형으로 제공하는 관리형 모델- DBRX Instruct, Meta Llama 3 70B Instruct, Mixtral-8x7B Instruct, GTE Large, BGE Large를 제공- Pay-per-token 방식으로 과금 외부 모델(External Models)- Databricks 외부에서 호스팅되는 모델을 Databricks 모델 서빙에서 등록하여 사용하는 방식- 외부 모델을 Databricks 모델 서빙 엔드포인트로 통합하여 사용량과 권한제어를 중앙 집중 관리식으로 사용- OpenAI GPT-4, Anthropic Claude, Amazon Bedrock, Google Cloud Vertex AI 등을 등록 가능</p>
+<hr>
+</section>
+<section id="slide-13-databricks-mlflow" class="level2">
+<h2 class="anchored" data-anchor-id="slide-13-databricks-mlflow">Slide 13: Databricks’ MLflow</h2>
+<p>실험(Experiment) 및 실행(Run)관리 모델의 하이퍼파라미터, 평가메트릭, 출력파일(Pickle, Data, Image, etc.), 소스파일들을 등록하여 관리 하이퍼파라미터 혹은 피처들을 달리한 모델의 평가메트릭(정확도, 로스율 등)을 비교하는 기능을 제공 태그를 통한 실험 검색 지원</p>
+<p>&lt; Mlflow에의해 등록된 실험 목록 &gt; &lt; 실험결과의 평가지표들을 비교 &gt;</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide13_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 13 image (5.0” x 3.4”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide13_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 13 image (5.0” x 3.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-14-databricks-mlflow" class="level2">
+<h2 class="anchored" data-anchor-id="slide-14-databricks-mlflow">Slide 14: Databricks’ MLflow</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide14_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 14 image (5.0” x 3.4”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide14_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 14 image (4.9” x 3.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-15-databricks-mlflow" class="level2">
+<h2 class="anchored" data-anchor-id="slide-15-databricks-mlflow">Slide 15: Databricks’ MLflow</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide15_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 15 image (5.0” x 3.4”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide15_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 15 image (5.0” x 3.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-17-compute-setting" class="level2">
+<h2 class="anchored" data-anchor-id="slide-17-compute-setting">Slide 17: Compute Setting</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide17_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 17 image (9.3” x 5.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-18-workspace-setting" class="level2">
+<h2 class="anchored" data-anchor-id="slide-18-workspace-setting">Slide 18: Workspace Setting</h2>
+<ol start="3" type="1">
+<li><p>다운로드 받은 zip 파일 업로드</p></li>
+<li><p>workspace 에서 더 보기 아이콘 선택</p></li>
+<li><p>Import 선택</p></li>
+<li><p>업로드</p></li>
+</ol>
+<hr>
+</section>
+<section id="slide-19-workspace-setting" class="level2">
+<h2 class="anchored" data-anchor-id="slide-19-workspace-setting">Slide 19: Workspace Setting</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide19_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 19 image (8.5” x 5.2”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-20-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="slide-20-dataset">Slide 20: Dataset</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide20_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 20 image (6.2” x 3.6”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide20_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 20 image (6.1” x 3.5”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-21-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="slide-21-dataset">Slide 21: Dataset</h2>
+<p>Overview games.csv&nbsp;- a table of games (or add-ons) information on ratings, pricing in US dollars $, release date, etc. A piece of extra non-tabular details on games, such as descriptions and tags, is in a&nbsp;metadata file; users.csv&nbsp;- a table of user profiles’ public information: the number of purchased products and reviews published; recommendations.csv&nbsp;- a table of user reviews: whether the user recommends a product. The table represents a many-many relation between a game entity and a user entity.</p>
+<hr>
+</section>
+<section id="slide-22-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="slide-22-dataset">Slide 22: Dataset</h2>
+<p>Columns | games.csv | | — | | app_id | | title | | date_release | | win | | mac | | linux | | rating | | positive_ratio | | user_reviews | | price_final | | price_original | | discount | | stream_deck | | users.csv | | — | | user_id | | products | | reviews | | recommendations.csv | | — | | review_id | | app_id | | user_id | | helpful | | funny | | date | | hours | | is_recommended | | games_metadata.json | | — | | app_id | | description | | tags |</p>
+<hr>
+</section>
+<section id="slide-23-00-download-data" class="level2">
+<h2 class="anchored" data-anchor-id="slide-23-00-download-data">Slide 23: 00-Download Data</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide23_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 23 image (8.5” x 1.9”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide23_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 23 image (8.5” x 2.2”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-25-01-files-to-table" class="level2">
+<h2 class="anchored" data-anchor-id="slide-25-01-files-to-table">Slide 25: 01-Files to Table</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide25_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 25 image (7.9” x 2.6”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-27-03-users-collaborative-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-27-03-users-collaborative-filtering">Slide 27: 03-Users Collaborative Filtering</h2>
+<p>목표 Mlflow model registry 에 대한 이해 SDK 와 UI 를 이용한 모델 서빙 모델 서빙 기능 익히기</p>
+<hr>
+</section>
+<section id="slide-28-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-28-02-games-content-based-filtering">Slide 28: 02-Games Content-Based Filtering</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>games.csv</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>app_id</td>
+</tr>
+<tr class="even">
+<td>title</td>
+</tr>
+<tr class="odd">
+<td>date_release</td>
+</tr>
+<tr class="even">
+<td>win</td>
+</tr>
+<tr class="odd">
+<td>mac</td>
+</tr>
+<tr class="even">
+<td>linux</td>
+</tr>
+<tr class="odd">
+<td>rating</td>
+</tr>
+<tr class="even">
+<td>positive_ratio</td>
+</tr>
+<tr class="odd">
+<td>user_reviews</td>
+</tr>
+<tr class="even">
+<td>price_final</td>
+</tr>
+<tr class="odd">
+<td>price_original</td>
+</tr>
+<tr class="even">
+<td>discount</td>
+</tr>
+<tr class="odd">
+<td>stream_deck</td>
+</tr>
+<tr class="even">
+<td>games_metadata.json</td>
+</tr>
+<tr class="odd">
+<td>—</td>
+</tr>
+<tr class="even">
+<td>app_id</td>
+</tr>
+<tr class="odd">
+<td>description</td>
+</tr>
+<tr class="even">
+<td>tags</td>
+</tr>
+<tr class="odd">
+<td>games_sdf</td>
+</tr>
+<tr class="even">
+<td>—</td>
+</tr>
+<tr class="odd">
+<td>app_id</td>
+</tr>
+<tr class="even">
+<td>title</td>
+</tr>
+<tr class="odd">
+<td>date_release</td>
+</tr>
+<tr class="even">
+<td>win</td>
+</tr>
+<tr class="odd">
+<td>mac</td>
+</tr>
+<tr class="even">
+<td>linux</td>
+</tr>
+<tr class="odd">
+<td>rating</td>
+</tr>
+<tr class="even">
+<td>positive_ratio</td>
+</tr>
+<tr class="odd">
+<td>user_reviews</td>
+</tr>
+<tr class="even">
+<td>price_final</td>
+</tr>
+<tr class="odd">
+<td>price_original</td>
+</tr>
+<tr class="even">
+<td>discount</td>
+</tr>
+<tr class="odd">
+<td>stream_deck</td>
+</tr>
+<tr class="even">
+<td>description</td>
+</tr>
+<tr class="odd">
+<td>tags</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</section>
+<section id="slide-29-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-29-02-games-content-based-filtering">Slide 29: 02-Games Content-Based Filtering</h2>
+<p>Price Steam store has both F2P and Premium games available. The average price for a AAA game is 70$ Products with price of less than 3$ are either low-quality demos or simple DLC’s Rating Games with rating = overwhelmingly negative or very negative will be filtered out. These ratings were formed under media influence (Overwatch 2), the game was abandoned by developer (Kinetic Void) or just extremely bad quality product (Wildlands - Narco Road or O2Jam Online)</p>
+<hr>
+</section>
+<section id="slide-30-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-30-02-games-content-based-filtering">Slide 30: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide30_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 30 image (10.9” x 3.6”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-31-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-31-02-games-content-based-filtering">Slide 31: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide31_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 31 image (8.5” x 4.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-32-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-32-02-games-content-based-filtering">Slide 32: 02-Games Content-Based Filtering</h2>
+<p>Feature Architecture TF-IDF | games_sdf | | — | | app_id | | description | | tags | Multi-label Binarizer</p>
+<hr>
+</section>
+<section id="slide-33-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-33-02-games-content-based-filtering">Slide 33: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide33_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 33 image (8.5” x 3.4”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide33_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 33 image (6.4” x 2.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-34-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-34-02-games-content-based-filtering">Slide 34: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide34_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 34 image (10.3” x 2.1”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide34_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 34 image (10.3” x 1.5”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-35-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-35-02-games-content-based-filtering">Slide 35: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide35_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 35 image (7.7” x 1.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-36-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-36-02-games-content-based-filtering">Slide 36: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide36_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 36 image (8.5” x 3.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-37-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-37-02-games-content-based-filtering">Slide 37: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide37_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 37 image (12.4” x 2.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-38-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-38-02-games-content-based-filtering">Slide 38: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide38_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 38 image (7.0” x 5.0”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-39-mlflow-model" class="level2">
+<h2 class="anchored" data-anchor-id="slide-39-mlflow-model">Slide 39: Mlflow Model</h2>
+<p>Log, load, and register MLflow models An MLflow&nbsp;Model&nbsp;is a standard format for packaging machine learning models that can be used in a variety of downstream tools —for example, batch inference on&nbsp;Apache Spark&nbsp;or real-time serving through a REST API. The format defines a convention that lets you save a model in different&nbsp;flavors&nbsp;(python-function, pytorch, sklearn, and so on), that can be understood by different model&nbsp;serving and inference platforms.</p>
+<hr>
+</section>
+<section id="slide-40-mlflow-model" class="level2">
+<h2 class="anchored" data-anchor-id="slide-40-mlflow-model">Slide 40: Mlflow Model</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide40_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 40 image (1.6” x 4.6”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-41-mlflow-model" class="level2">
+<h2 class="anchored" data-anchor-id="slide-41-mlflow-model">Slide 41: Mlflow Model</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide41_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Models from code comparison with legacy serialization</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-42-mlflow-model" class="level2">
+<h2 class="anchored" data-anchor-id="slide-42-mlflow-model">Slide 42: Mlflow Model</h2>
+<p>Pyfunc Flavors Building a simple Models From Code model</p>
+<hr>
+</section>
+<section id="slide-43-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-43-02-games-content-based-filtering">Slide 43: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide43_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 43 image (7.0” x 5.0”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-44-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-44-02-games-content-based-filtering">Slide 44: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide44_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 44 image (7.0” x 5.0”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide44_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 44 image (4.8” x 2.1”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-45-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-45-02-games-content-based-filtering">Slide 45: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide45_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 45 image (8.5” x 3.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-46-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-46-02-games-content-based-filtering">Slide 46: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide46_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 46 image (3.7” x 1.7”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide46_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 46 image (7.0” x 4.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-47-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-47-02-games-content-based-filtering">Slide 47: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide47_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 47 image (7.0” x 4.4”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide47_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 47 image (4.0” x 0.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-48-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-48-02-games-content-based-filtering">Slide 48: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide48_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 48 image (8.2” x 4.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-49-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-49-02-games-content-based-filtering">Slide 49: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide49_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 49 image (4.8” x 1.9”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide49_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 49 image (4.8” x 1.6”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide49_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 49 image (4.8” x 1.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide49_img04.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 49 image (4.8” x 3.6”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-50-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-50-02-games-content-based-filtering">Slide 50: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide50_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 50 image (8.5” x 4.3”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-51-02-games-content-based-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-51-02-games-content-based-filtering">Slide 51: 02-Games Content-Based Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide51_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 51 image (7.7” x 4.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-53-03-users-collaborative-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-53-03-users-collaborative-filtering">Slide 53: 03-Users Collaborative Filtering</h2>
+<p>목표 Surprise 패키지를 사용한 여러 모델 개발 고도화된 Mlflow 의 모델 저장 방법 Load Context Packages</p>
+<hr>
+</section>
+<section id="slide-54-03-users-collaborative-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-54-03-users-collaborative-filtering">Slide 54: 03-Users Collaborative Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide54_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 54 image (8.5” x 4.5”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-55-03-users-collaborative-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-55-03-users-collaborative-filtering">Slide 55: 03-Users Collaborative Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide55_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 55 image (4.4” x 3.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide55_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 55 image (4.0” x 3.3”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide55_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 55 image (4.0” x 3.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide55_img04.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 55 image (2.8” x 1.2”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-56-03-users-collaborative-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-56-03-users-collaborative-filtering">Slide 56: 03-Users Collaborative Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide56_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 56 image (8.5” x 4.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-57-03-users-collaborative-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-57-03-users-collaborative-filtering">Slide 57: 03-Users Collaborative Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide57_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 57 image (9.3” x 5.3”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-58-03-users-collaborative-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-58-03-users-collaborative-filtering">Slide 58: 03-Users Collaborative Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide58_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 58 image (4.5” x 5.6”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-59-03-users-collaborative-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-59-03-users-collaborative-filtering">Slide 59: 03-Users Collaborative Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide59_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 59 image (9.3” x 1.4”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide59_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 59 image (9.3” x 2.5”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-60-mlflow-depdency-management" class="level2">
+<h2 class="anchored" data-anchor-id="slide-60-mlflow-depdency-management">Slide 60: Mlflow Depdency Management</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide60_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 60 image (8.5” x 4.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-61-mlflow-depdency-management" class="level2">
+<h2 class="anchored" data-anchor-id="slide-61-mlflow-depdency-management">Slide 61: Mlflow Depdency Management</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide61_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 61 image (7.7” x 0.9”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide61_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 61 image (3.1” x 3.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide61_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 61 image (4.0” x 1.7”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide61_img04.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 61 image (3.3” x 2.6”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-62-mlflow-depdency-management" class="level2">
+<h2 class="anchored" data-anchor-id="slide-62-mlflow-depdency-management">Slide 62: Mlflow Depdency Management</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide62_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 62 image (11.1” x 0.9”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide62_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 62 image (7.0” x 1.5”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide62_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 62 image (3.7” x 3.3”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-63-mlflow-depdency-management" class="level2">
+<h2 class="anchored" data-anchor-id="slide-63-mlflow-depdency-management">Slide 63: Mlflow Depdency Management</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide63_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 63 image (7.0” x 1.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide63_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 63 image (3.7” x 3.3”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide63_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 63 image (11.3” x 0.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-64-03-users-collaborative-filtering" class="level2">
+<h2 class="anchored" data-anchor-id="slide-64-03-users-collaborative-filtering">Slide 64: 03-Users Collaborative Filtering</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide64_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 64 image (12.4” x 2.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-66-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-66-04-feature-store-baseline">Slide 66: 04-Feature Store Baseline</h2>
+<p>목표 Feature Store 사용법에 대한 이해 Mlflow 기본 사용법 Feature Store 와 결합된 모델 사용법 모델 서빙을 이용한 실시간 추론</p>
+<hr>
+</section>
+<section id="slide-67-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-67-04-feature-store-baseline">Slide 67: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide67_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 67 image (7.1” x 4.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-68-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-68-04-feature-store-baseline">Slide 68: 04-Feature Store Baseline</h2>
+<p>Create Feature Stores | recommendations_feature | | — | | review_id | | app_id | | user_id | | helpful | | funny | | date | | hours | | is_recommended | | users_feature | | — | | user_id | | products | | reviews | | games_feature | | — | | app_id | | title | | date_release | | win | | mac | | linux | | rating | | positive_ratio | | user_reviews | | price_final | | price_original | | discount | | stream_deck | PK PK PK</p>
+<hr>
+</section>
+<section id="slide-69-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-69-04-feature-store-baseline">Slide 69: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide69_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 69 image (4.8” x 1.3”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide69_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 69 image (6.4” x 3.0”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-70-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-70-04-feature-store-baseline">Slide 70: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide70_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 70 image (6.4” x 3.9”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide70_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 70 image (5.8” x 3.3”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-71-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-71-04-feature-store-baseline">Slide 71: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide71_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 71 image (10.3” x 0.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-72-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-72-04-feature-store-baseline">Slide 72: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide72_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 72 image (3.3” x 4.7”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide72_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 72 image (5.1” x 2.1”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide72_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 72 image (5.8” x 0.5”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-73-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-73-04-feature-store-baseline">Slide 73: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide73_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 73 image (8.5” x 3.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-74-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-74-04-feature-store-baseline">Slide 74: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide74_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 74 image (10.3” x 4.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-75-key-concepts-in-tracking" class="level2">
+<h2 class="anchored" data-anchor-id="slide-75-key-concepts-in-tracking">Slide 75: Key Concepts in Tracking</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide75_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 75 image (6.7” x 3.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-76-mlflow-tracking" class="level2">
+<h2 class="anchored" data-anchor-id="slide-76-mlflow-tracking">Slide 76: Mlflow tracking</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide76_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 76 image (6.4” x 3.7”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide76_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 76 image (6.0” x 3.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-77-mlflow-tracking" class="level2">
+<h2 class="anchored" data-anchor-id="slide-77-mlflow-tracking">Slide 77: Mlflow tracking</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide77_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 77 image (6.0” x 4.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide77_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 77 image (6.0” x 3.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-78-mlflow-tracking" class="level2">
+<h2 class="anchored" data-anchor-id="slide-78-mlflow-tracking">Slide 78: Mlflow tracking</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide78_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 78 image (6.0” x 2.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide78_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 78 image (6.0” x 3.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-79" class="level2">
+<h2 class="anchored" data-anchor-id="slide-79">Slide 79</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide79_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 79 image (2.0” x 1.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide79_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 79 image (4.0” x 2.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide79_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 79 image (1.9” x 1.7”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide79_img04.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 79 image (8.5” x 1.0”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-80-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-80-04-feature-store-baseline">Slide 80: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide80_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 80 image (10.3” x 4.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-81-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-81-04-feature-store-baseline">Slide 81: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide81_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 81 image (10.3” x 4.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-82-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-82-04-feature-store-baseline">Slide 82: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide82_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 82 image (7.8” x 4.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-83-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-83-04-feature-store-baseline">Slide 83: 04-Feature Store Baseline</h2>
+<p>Inference with feature engineering with full feature</p>
+<hr>
+</section>
+<section id="slide-84-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-84-04-feature-store-baseline">Slide 84: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide84_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 84 image (8.5” x 4.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-85-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-85-04-feature-store-baseline">Slide 85: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide85_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 85 image (3.7” x 2.6”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide85_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 85 image (8.5” x 1.4”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide85_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 85 image (8.5” x 1.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-86-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-86-04-feature-store-baseline">Slide 86: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide86_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 86 image (4.6” x 4.3”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide86_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 86 image (7.0” x 1.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide86_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 86 image (7.1” x 2.1”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-87-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-87-04-feature-store-baseline">Slide 87: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide87_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 87 image (7.4” x 4.3”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-88-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-88-04-feature-store-baseline">Slide 88: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide88_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 88 image (9.3” x 2.2”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide88_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 88 image (9.3” x 1.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-89-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-89-04-feature-store-baseline">Slide 89: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide89_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 89 image (4.9” x 1.8”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide89_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 89 image (4.9” x 2.8”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide89_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 89 image (7.0” x 2.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-90-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-90-04-feature-store-baseline">Slide 90: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide90_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 90 image (7.0” x 4.6”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-91-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-91-04-feature-store-baseline">Slide 91: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide91_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 91 image (9.3” x 5.1”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-92-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-92-04-feature-store-baseline">Slide 92: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide92_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 92 image (6.7” x 5.1”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-93-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-93-04-feature-store-baseline">Slide 93: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide93_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 93 image (8.1” x 5.0”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-94-04-feature-store-baseline" class="level2">
+<h2 class="anchored" data-anchor-id="slide-94-04-feature-store-baseline">Slide 94: 04-Feature Store Baseline</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide94_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 94 image (7.1” x 5.0”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-96-05-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-96-05-automl">Slide 96: 05-Automl</h2>
+<p>목표 데이터브릭스 AutoML 을 이용해 분류 모델 고도화 AutoML 사용법에 대한 이해 AutoML 으로 탐색한 모델과 business case 의 결합</p>
+<hr>
+</section>
+<section id="slide-97-databricks-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-97-databricks-automl">Slide 97: Databricks AutoML</h2>
+<p>A glass-box solution that empowers data teams without taking away control</p>
+<p>MLflow experiment Auto-created MLflow Experiment to track models and metrics Data exploration notebook Generated notebook with feature summary statistics and distributions</p>
+<p>Reproducible trial notebooks Generated notebooks with source code for every model Easily deploy to Model Registry UI and API to start AutoML training</p>
+<p>Iterate further on models from AutoML, adding your expertise</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide97_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 97 image (2.1” x 1.6”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide97_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 97 image (2.1” x 1.7”)</figcaption>
+</figure>
+</div>
+<blockquote class="blockquote">
+<p><strong>Notes:</strong> Databricks AutoML provides a glass-box solution to AutoML. It provides the benefits of automation, while giving the user full ownership of code and models.</p>
+<p>You can run AutoML from the UI or the API. This makes it accessible to citizen data scientists, with the power of code for experienced data scientists.</p>
+<p>AutoML will test different models, tune hyperparameters, and return the list of models produced. Three key artifacts are returned: MLflow Experiment: AutoML integrates smoothly with existing MLflow Tracking, automatically creating an experiment listing all of the models created by your AutoML run. Data exploration notebook: AutoML generates a notebook exploring your data. This helps you to visually understand your data and identify potential problems with it. Reproducible trial notebooks: For every potential model it trains, AutoML generates a notebook which can reproduce that model training. This is the key “glass-box” feature: it allows experts to get a quick start to modeling and then to clone the notebook and use their expert knowledge to improve the model further.</p>
+<p>With all models automatically logged to MLflow, it is easy to deploy an AutoML model for batch, streaming, or online inference via the Model Registry.</p>
+</blockquote>
+<hr>
+</section>
+<section id="slide-98-automl-on-databricks" class="level2">
+<h2 class="anchored" data-anchor-id="slide-98-automl-on-databricks">Slide 98: AutoML on Databricks</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide98_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 98 image (1.8” x 0.6”)</figcaption>
+</figure>
+</div>
+<blockquote class="blockquote">
+<p><strong>Notes:</strong> Just to recap</p>
+<p>Most AutoML solutions are an “opaque box”, meaning they don’t know exactly how the model was trained. Data scientists aren’t usually comfortable with this because they can’t tell what data preprocessing was done, what feature engineering was done, etc. so they are hesitant to put these models into production. Oftentimes, they ‘reverse engineer’ the returned model so they can tweak it. Our solution provides a transparent way for users to see how a model was trained, learn how to use Databricks features like MLflow, and provides the training notebook for easy modification.</p>
+</blockquote>
+<hr>
+</section>
+<section id="slide-99-glassbox-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-99-glassbox-automl">Slide 99: Glassbox AutoML</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide99_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 99 image (5.8” x 3.4”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide99_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 99 image (5.3” x 3.1”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide99_img03.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 99 image (5.8” x 3.5”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-100-05-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-100-05-automl">Slide 100: 05-Automl</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide100_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 100 image (5.8” x 3.8”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide100_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 100 image (7.0” x 2.4”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-101-05-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-101-05-automl">Slide 101: 05-Automl</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide101_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 101 image (7.9” x 4.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-102-05-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-102-05-automl">Slide 102: 05-Automl</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide102_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 102 image (7.7” x 4.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-103-05-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-103-05-automl">Slide 103: 05-Automl</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide103_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 103 image (7.7” x 4.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-104-05-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-104-05-automl">Slide 104: 05-Automl</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide104_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 104 image (7.7” x 4.8”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-105-05-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-105-05-automl">Slide 105: 05-Automl</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide105_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 105 image (8.5” x 5.1”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-106-05-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-106-05-automl">Slide 106: 05-Automl</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide106_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 106 image (8.5” x 4.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-107-05-automl" class="level2">
+<h2 class="anchored" data-anchor-id="slide-107-05-automl">Slide 107: 05-Automl</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide107_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 107 image (6.4” x 4.4”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide107_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 107 image (6.4” x 2.2”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-109-06-advanced-user-cold-start" class="level2">
+<h2 class="anchored" data-anchor-id="slide-109-06-advanced-user-cold-start">Slide 109: 06-Advanced User Cold Start</h2>
+<p>목표 새로운 유저에 대한 cold start 고도화 기존에 새로운 게임에 대한 추천 여부를 랜덤으로 채움 이 부분을 앞선 챕터에서 학습한 모델을 이용해 고도화</p>
+<hr>
+</section>
+<section id="slide-110-06-advanced-user-cold-start" class="level2">
+<h2 class="anchored" data-anchor-id="slide-110-06-advanced-user-cold-start">Slide 110: 06-Advanced User Cold Start</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide110_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 110 image (8.5” x 4.7”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-111-06-advanced-user-cold-start" class="level2">
+<h2 class="anchored" data-anchor-id="slide-111-06-advanced-user-cold-start">Slide 111: 06-Advanced User Cold Start</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide111_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 111 image (5.9” x 4.1”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide111_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 111 image (5.2” x 2.5”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-113-databricks-lakehouse-monitoring" class="level2">
+<h2 class="anchored" data-anchor-id="slide-113-databricks-lakehouse-monitoring">Slide 113: Databricks Lakehouse Monitoring</h2>
+<p>Automated insights and out-of-the box metrics on data and ML pipelines Fully managed so no time wasted managing infrastructure, calculating metrics, or building dashboards from scratch Frictionless with easy setup and out-of-the-box metrics and generated dashboards Unified solution for data and models for holistic understanding</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide113_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 113 image (6.7” x 3.6”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-114-monitor-all-tables-in-your-lakehouse" class="level2">
+<h2 class="anchored" data-anchor-id="slide-114-monitor-all-tables-in-your-lakehouse">Slide 114: Monitor all tables in your lakehouse</h2>
+<p>Different out-of-the-box analysis metrics based on table type(s) Snapshot Table Time Series Table Model(s) Inference Table Bronze/Silver/Gold Feature table</p>
+<p>monitor monitor monitor TimeStamp Features Prediction column Label column Model ID Databricks batch scoring pipeline Databricks Model Serving Endpoint ETL to ingest from external serving (request logs) or batch pipelines TimeStamp Columns/Features Columns</p>
+<hr>
+</section>
+<section id="slide-115-monitoring-a-table-in-the-lakehouse" class="level2">
+<h2 class="anchored" data-anchor-id="slide-115-monitoring-a-table-in-the-lakehouse">Slide 115: Monitoring a table in the Lakehouse</h2>
+<p>How does it work? Table</p>
+<p>Anomaly detection and drift for training-vs-scoring and scoring-vs-scoring Delta/changes in nulls and counts, PSI, KS divergence, Mean shift, Total Variation distance, L-inf distance, χ2 test, Wasserstein distance, …</p>
+<p>Distributional statistics for inputs, outputs Minimum, maximum, standard deviation, quantiles, top occurring value, … 🔎monitor Profiling Table Drift Table Model quality metrics (if labels are provided) Classification: Accuracy, F1, precision, recall Regression: MSE, RMSE, MAE, R2, …</p>
+<p>Dashboard Custom metrics Expressed as SQL expressions</p>
+<p>Webhooks</p>
+<p>Alerts</p>
+<p>DBSQL</p>
+<hr>
+</section>
+<section id="slide-116-built-on-unity-catalog" class="level2">
+<h2 class="anchored" data-anchor-id="slide-116-built-on-unity-catalog">Slide 116: Built on Unity Catalog</h2>
+<p>Background service that incrementally processes data in Unity Catalog tables</p>
+<p>Calculates profile metrics stored in UC table Calculates drift metrics stored in UC table Supports custom metrics as SQL expressions Auto-generates DBSQL dashboard to visualize metrics over time</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide116_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 116 image (6.4” x 4.3”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide116_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 116 image (4.3” x 2.5”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-117-data-drift" class="level2">
+<h2 class="anchored" data-anchor-id="slide-117-data-drift">Slide 117: Data Drift</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide117_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Model Drift Workflow</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-118-data-drift" class="level2">
+<h2 class="anchored" data-anchor-id="slide-118-data-drift">Slide 118: Data Drift</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide118_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Model Drift Workflow</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-119-07-quality-monitoring" class="level2">
+<h2 class="anchored" data-anchor-id="slide-119-07-quality-monitoring">Slide 119: 07-Quality Monitoring</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide119_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 119 image (7.7” x 4.6”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-120-07-quality-monitoring" class="level2">
+<h2 class="anchored" data-anchor-id="slide-120-07-quality-monitoring">Slide 120: 07-Quality Monitoring</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide120_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 120 image (7.7” x 4.5”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-121-07-quality-monitoring" class="level2">
+<h2 class="anchored" data-anchor-id="slide-121-07-quality-monitoring">Slide 121: 07-Quality Monitoring</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide121_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 121 image (7.0” x 4.9”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-122-07-quality-monitoring" class="level2">
+<h2 class="anchored" data-anchor-id="slide-122-07-quality-monitoring">Slide 122: 07-Quality Monitoring</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide122_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 122 image (6.2” x 4.9”)</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide122_img02.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 122 image (4.6” x 4.2”)</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="slide-123-07-quality-monitoring" class="level2">
+<h2 class="anchored" data-anchor-id="slide-123-07-quality-monitoring">Slide 123: 07-Quality Monitoring</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/slide123_img01.png" class="img-fluid figure-img"></p>
+<figcaption>Slide 123 image (6.8” x 4.7”)</figcaption>
+</figure>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "복사완료!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "복사완료!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/aiden-jeon\.github\.io\/databricks-mlflow-model-serving");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../../docs/README.html" class="pagination-link" aria-label="참고 자료">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">참고 자료</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/Aiden-Jeon/databricks-mlflow-model-serving/edit/main/docs/slides/250530_Hadns-on_Sessionpptx.md" class="toc-action"><i class="bi bi-github"></i>편집</a></li><li><a href="https://github.com/Aiden-Jeon/databricks-mlflow-model-serving/blob/main/docs/slides/250530_Hadns-on_Sessionpptx.md" class="toc-action"><i class="bi empty"></i>소스코드 보기</a></li></ul></div></div></div></footer></body></html>
