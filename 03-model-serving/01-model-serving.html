@@ -328,6 +328,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../03-model-serving/README.html">
  <span class="dropdown-text">03 · Model Serving</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../04-gpu-torch-serving/README.html">
+ <span class="dropdown-text">04 · GPU Torch Serving</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item">
@@ -516,13 +520,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="../docs/README.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">참고 자료</span></a>
+            <a href="../04-gpu-torch-serving/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">04 · GPU Torch Serving</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="토글 섹션">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../04-gpu-torch-serving/01-train-and-serve.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">01 · GPU PyTorch — Train · Log · Serve</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../docs/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">참고 자료</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../docs/slides/250530_Hadns-on_Sessionpptx.html" class="sidebar-item-text sidebar-link">
@@ -561,8 +582,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#컷오버" id="toc-컷오버" class="nav-link" data-scroll-target="#컷오버">100% 컷오버</a></li>
   </ul></li>
-  <li><a href="#step-7.-batch-scoring-spark-udf-가-정답" id="toc-step-7.-batch-scoring-spark-udf-가-정답" class="nav-link" data-scroll-target="#step-7.-batch-scoring-spark-udf-가-정답">Step 7. Batch Scoring — Spark UDF 가 정답</a></li>
-  <li><a href="#step-8.-선택-endpoint-삭제" id="toc-step-8.-선택-endpoint-삭제" class="nav-link" data-scroll-target="#step-8.-선택-endpoint-삭제">Step 8. (선택) Endpoint 삭제</a></li>
+  <li><a href="#step-7.-선택-endpoint-삭제" id="toc-step-7.-선택-endpoint-삭제" class="nav-link" data-scroll-target="#step-7.-선택-endpoint-삭제">Step 7. (선택) Endpoint 삭제</a></li>
   <li><a href="#정리" id="toc-정리" class="nav-link" data-scroll-target="#정리">정리</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/Aiden-Jeon/databricks-mlflow-model-serving/blob/main/03-model-serving/01-model-serving.ipynb" class="toc-action"><i class="bi bi-github"></i>편집</a></li><li><a href="https://github.com/Aiden-Jeon/databricks-mlflow-model-serving/blob/main/03-model-serving/01-model-serving.ipynb" class="toc-action"><i class="bi empty"></i>소스코드 보기</a></li></ul></div></nav>
@@ -597,7 +617,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>호출 4가지 방법</strong> — <code>mlflow.deployments</code>, <code>WorkspaceClient.serving_endpoints.query()</code>, <code>requests</code>, <code>curl</code></li>
 <li><strong>AI Gateway Inference Tables</strong> — 요청/응답 자동 로깅 (legacy <code>auto_capture_config</code> 대체)</li>
 <li><strong>Blue/Green canary</strong> — <code>traffic_config</code> 로 점진적 롤아웃</li>
-<li><strong>Batch scoring</strong> 가이드 — Spark UDF 가 정답</li>
 </ol>
 <div id="cell-2" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>pip install <span class="op">-</span>q <span class="st">"databricks-sdk&gt;=0.30.0"</span> <span class="st">"mlflow&gt;=2.20.0"</span></span>
@@ -670,27 +689,27 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> databricks.sdk.service.serving <span class="im">import</span> (</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    EndpointCoreConfigInput, ServedEntityInput, TrafficConfig, Route,</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    AiGatewayConfig, AiGatewayInferenceTableConfig, AiGatewayRateLimit,</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>w <span class="op">=</span> WorkspaceClient()</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 첫 served entity 이름 (logical alias, traffic_config 에서 참조)</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>served_name_v1 <span class="op">=</span> <span class="ss">f"wheel-v</span><span class="sc">{</span>latest<span class="sc">.</span>version<span class="sc">}</span><span class="ss">"</span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>endpoint <span class="op">=</span> w.serving_endpoints.create_and_wait(</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span>endpoint_wheel,</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    config<span class="op">=</span>EndpointCoreConfigInput(</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        served_entities<span class="op">=</span>[</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>            ServedEntityInput(</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span>served_name_v1,</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>                entity_name<span class="op">=</span>model_wheel,</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>                entity_version<span class="op">=</span><span class="bu">str</span>(latest.version),</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>                workload_size<span class="op">=</span><span class="st">"Small"</span>,</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>                workload_type<span class="op">=</span><span class="st">"CPU"</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    AiGatewayRateLimitKey, AiGatewayRateLimitRenewalPeriod, EndpointTag,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>w <span class="op">=</span> WorkspaceClient()</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 첫 served entity 이름 (logical alias, traffic_config 에서 참조)</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>served_name_v1 <span class="op">=</span> <span class="ss">f"wheel-v</span><span class="sc">{</span>latest<span class="sc">.</span>version<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>endpoint <span class="op">=</span> w.serving_endpoints.create_and_wait(</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span>endpoint_wheel,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    config<span class="op">=</span>EndpointCoreConfigInput(</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        served_entities<span class="op">=</span>[</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>            ServedEntityInput(</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span>served_name_v1,</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>                entity_name<span class="op">=</span>model_wheel,</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>                entity_version<span class="op">=</span><span class="bu">str</span>(latest.version),</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>                workload_size<span class="op">=</span><span class="st">"Small"</span>,</span>
 <span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>                scale_to_zero_enabled<span class="op">=</span><span class="va">True</span>,   <span class="co"># 데모 / 개발: True. 프로덕션: False</span></span>
 <span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>                environment_vars<span class="op">=</span>{</span>
 <span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"LOG_LEVEL"</span>: <span class="st">"INFO"</span>,</span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>                    <span class="co"># "AZURE_OPENAI_KEY": "{{secrets/samsung_scope/aoai_key}}",</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>                    <span class="co"># "AZURE_OPENAI_KEY": "{{secrets/demo_scope/aoai_key}}",</span></span>
 <span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>                },</span>
 <span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>            )</span>
 <span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        ],</span>
@@ -706,14 +725,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>            table_name_prefix<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>endpoint_wheel<span class="sc">.</span>replace(<span class="st">'-'</span>, <span class="st">'_'</span>)<span class="sc">}</span><span class="ss">_inference"</span>,</span>
 <span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>        ),</span>
 <span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>        rate_limits<span class="op">=</span>[</span>
-<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>            AiGatewayRateLimit(calls<span class="op">=</span><span class="dv">300</span>, key<span class="op">=</span><span class="st">"endpoint"</span>, renewal_period<span class="op">=</span><span class="st">"minute"</span>),</span>
-<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>        ],</span>
-<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>    tags<span class="op">=</span>[{<span class="st">"key"</span>: <span class="st">"demo"</span>, <span class="st">"value"</span>: <span class="st">"samsung-hands-on"</span>}],</span>
-<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"✓ endpoint </span><span class="sc">{</span>endpoint<span class="sc">.</span>name<span class="sc">}</span><span class="ss"> state=</span><span class="sc">{</span>endpoint<span class="sc">.</span>state<span class="sc">.</span>ready<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"   URL: https://</span><span class="sc">{</span>w<span class="sc">.</span>config<span class="sc">.</span>host<span class="sc">}</span><span class="ss">/serving-endpoints/</span><span class="sc">{</span>endpoint<span class="sc">.</span>name<span class="sc">}</span><span class="ss">/invocations"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>            AiGatewayRateLimit(</span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>                calls<span class="op">=</span><span class="dv">300</span>,</span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>                key<span class="op">=</span>AiGatewayRateLimitKey.ENDPOINT,</span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>                renewal_period<span class="op">=</span>AiGatewayRateLimitRenewalPeriod.MINUTE,</span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>            ),</span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>    tags<span class="op">=</span>[EndpointTag(key<span class="op">=</span><span class="st">"demo"</span>, value<span class="op">=</span><span class="st">"model-serving-cookbook"</span>)],</span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"✓ endpoint </span><span class="sc">{</span>endpoint<span class="sc">.</span>name<span class="sc">}</span><span class="ss"> state=</span><span class="sc">{</span>endpoint<span class="sc">.</span>state<span class="sc">.</span>ready<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"   URL: https://</span><span class="sc">{</span>w<span class="sc">.</span>config<span class="sc">.</span>host<span class="sc">}</span><span class="ss">/serving-endpoints/</span><span class="sc">{</span>endpoint<span class="sc">.</span>name<span class="sc">}</span><span class="ss">/invocations"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 </section>
@@ -865,13 +888,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        ServedEntityInput(</span>
 <span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span>served_name_v1,</span>
 <span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>            entity_name<span class="op">=</span>model_wheel, entity_version<span class="op">=</span><span class="bu">str</span>(latest.version),</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>            workload_size<span class="op">=</span><span class="st">"Small"</span>, workload_type<span class="op">=</span><span class="st">"CPU"</span>,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>            workload_size<span class="op">=</span><span class="st">"Small"</span>,</span>
 <span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>            scale_to_zero_enabled<span class="op">=</span><span class="va">True</span>,</span>
 <span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        ),</span>
 <span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>        ServedEntityInput(</span>
 <span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span>served_name_v2,</span>
 <span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>            entity_name<span class="op">=</span>model_wheel, entity_version<span class="op">=</span><span class="bu">str</span>(latest.version),</span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>            workload_size<span class="op">=</span><span class="st">"Small"</span>, workload_type<span class="op">=</span><span class="st">"CPU"</span>,</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>            workload_size<span class="op">=</span><span class="st">"Small"</span>,</span>
 <span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>            scale_to_zero_enabled<span class="op">=</span><span class="va">True</span>,</span>
 <span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        ),</span>
 <span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    ],</span>
@@ -892,7 +915,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        ServedEntityInput(</span>
 <span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span>served_name_v2,</span>
 <span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>            entity_name<span class="op">=</span>model_wheel, entity_version<span class="op">=</span><span class="bu">str</span>(latest.version),</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>            workload_size<span class="op">=</span><span class="st">"Small"</span>, workload_type<span class="op">=</span><span class="st">"CPU"</span>,</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>            workload_size<span class="op">=</span><span class="st">"Small"</span>,</span>
 <span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>            scale_to_zero_enabled<span class="op">=</span><span class="va">True</span>,</span>
 <span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>        ),</span>
 <span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    ],</span>
@@ -904,41 +927,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </section>
 </section>
-<section id="step-7.-batch-scoring-spark-udf-가-정답" class="level2">
-<h2 class="anchored" data-anchor-id="step-7.-batch-scoring-spark-udf-가-정답">Step 7. Batch Scoring — Spark UDF 가 정답</h2>
-<p>Model Serving 엔드포인트: - <strong>payload 16 MB cap</strong> - <strong>request timeout 120s</strong> (sync) - 워크스페이스 기본 200 QPS</p>
-<p>수백만 row 점수화는 <strong><code>mlflow.pyfunc.spark_udf</code></strong> 로 클러스터에서 병렬 처리. Endpoint 호출 루프는 <strong>금지</strong>.</p>
-<div id="cell-29" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>predict_udf <span class="op">=</span> mlflow.pyfunc.spark_udf(</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    spark,</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    model_uri<span class="op">=</span><span class="ss">f"models:/</span><span class="sc">{</span>model_wheel<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>latest<span class="sc">.</span>version<span class="sc">}</span><span class="ss">"</span>,</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    env_manager<span class="op">=</span><span class="st">"virtualenv"</span>,</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    result_type<span class="op">=</span><span class="st">"int"</span>,</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>scored <span class="op">=</span> (</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    spark.table(<span class="ss">f"</span><span class="sc">{</span>catalog<span class="sc">}</span><span class="ss">.</span><span class="sc">{</span>schema<span class="sc">}</span><span class="ss">.customers"</span>)</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>         .withColumn(<span class="st">"prediction"</span>,</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>                     predict_udf(<span class="st">"age"</span>, <span class="st">"tenure_months"</span>, <span class="st">"monthly_charges"</span>,</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>                                 <span class="st">"total_charges"</span>, <span class="st">"support_tickets"</span>))</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>display(scored.limit(<span class="dv">10</span>))</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Delta 로 저장</span></span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>(</span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    scored.select(<span class="st">"customer_id"</span>, <span class="st">"prediction"</span>)</span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>          .write.mode(<span class="st">"overwrite"</span>)</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>          .saveAsTable(<span class="ss">f"</span><span class="sc">{</span>catalog<span class="sc">}</span><span class="ss">.</span><span class="sc">{</span>schema<span class="sc">}</span><span class="ss">.churn_scores_batch"</span>)</span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"✓ batch scoring → churn_scores_batch"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-</section>
-<section id="step-8.-선택-endpoint-삭제" class="level2">
-<h2 class="anchored" data-anchor-id="step-8.-선택-endpoint-삭제">Step 8. (선택) Endpoint 삭제</h2>
+<section id="step-7.-선택-endpoint-삭제" class="level2">
+<h2 class="anchored" data-anchor-id="step-7.-선택-endpoint-삭제">Step 7. (선택) Endpoint 삭제</h2>
 <p>데모 후 비용 절약. <code>99_cleanup</code> 에서 일괄 정리 가능.</p>
-<div id="cell-31" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># w.serving_endpoints.delete(name=endpoint_wheel)</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"✓ deleted {endpoint_wheel}")</span></span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-29" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># w.serving_endpoints.delete(name=endpoint_wheel)</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"✓ deleted {endpoint_wheel}")</span></span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="정리" class="level2">
@@ -974,10 +968,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <tr class="even">
 <td>Blue/Green</td>
 <td><code>update_config_and_wait</code> + <code>TrafficConfig</code></td>
-</tr>
-<tr class="odd">
-<td>Batch</td>
-<td><code>mlflow.pyfunc.spark_udf</code> — <strong>endpoint 루프 절대 X</strong></td>
 </tr>
 </tbody>
 </table>

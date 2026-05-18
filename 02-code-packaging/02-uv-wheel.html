@@ -328,6 +328,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../03-model-serving/README.html">
  <span class="dropdown-text">03 · Model Serving</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../04-gpu-torch-serving/README.html">
+ <span class="dropdown-text">04 · GPU Torch Serving</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item">
@@ -516,13 +520,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="../docs/README.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">참고 자료</span></a>
+            <a href="../04-gpu-torch-serving/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">04 · GPU Torch Serving</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="토글 섹션">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../04-gpu-torch-serving/01-train-and-serve.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">01 · GPU PyTorch — Train · Log · Serve</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../docs/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">참고 자료</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../docs/slides/250530_Hadns-on_Sessionpptx.html" class="sidebar-item-text sidebar-link">
@@ -546,7 +567,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#작동-x-패턴-흔한-실수" id="toc-작동-x-패턴-흔한-실수" class="nav-link" data-scroll-target="#작동-x-패턴-흔한-실수">작동 X 패턴 (흔한 실수)</a></li>
   <li><a href="#step-1.-uv-설치-패키지-빌드" id="toc-step-1.-uv-설치-패키지-빌드" class="nav-link" data-scroll-target="#step-1.-uv-설치-패키지-빌드">Step 1. uv 설치 + 패키지 빌드</a>
   <ul class="collapse">
-  <li><a href="#패키지-디렉토리-확인" id="toc-패키지-디렉토리-확인" class="nav-link" data-scroll-target="#패키지-디렉토리-확인">패키지 디렉토리 확인</a></li>
   <li><a href="#wheel-빌드" id="toc-wheel-빌드" class="nav-link" data-scroll-target="#wheel-빌드">Wheel 빌드</a></li>
   </ul></li>
   <li><a href="#step-2.-빌드한-wheel-로컬-테스트" id="toc-step-2.-빌드한-wheel-로컬-테스트" class="nav-link" data-scroll-target="#step-2.-빌드한-wheel-로컬-테스트">Step 2. 빌드한 wheel 로컬 테스트</a></li>
@@ -598,8 +618,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>mlflow.pyfunc.log_model(</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">"model"</span>,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    python_model<span class="op">=</span>MyModel(),</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    code_paths<span class="op">=</span>[<span class="st">"dist/samsung_preproc-0.1.0-py3-none-any.whl"</span>],</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    extra_pip_requirements<span class="op">=</span>[<span class="st">"code/samsung_preproc-0.1.0-py3-none-any.whl"</span>],  <span class="co"># ← code/ 접두사 필수</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    code_paths<span class="op">=</span>[<span class="st">"dist/churn_preproc-0.1.0-py3-none-any.whl"</span>],</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    extra_pip_requirements<span class="op">=</span>[<span class="st">"code/churn_preproc-0.1.0-py3-none-any.whl"</span>],  <span class="co"># ← code/ 접두사 필수</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 <ul>
 <li><code>code_paths</code> 가 wheel 을 <code>&lt;model&gt;/code/</code> 로 복사</li>
@@ -616,199 +636,190 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="step-1.-uv-설치-패키지-빌드" class="level2">
 <h2 class="anchored" data-anchor-id="step-1.-uv-설치-패키지-빌드">Step 1. uv 설치 + 패키지 빌드</h2>
-<p><code>src/samsung_preproc/</code> 디렉토리에 이미 패키지 소스가 있습니다 (Repo / Workspace 동기화 시). 없다면 README 의 “Setup” 섹션을 따라 패키지를 먼저 생성하세요.</p>
+<p><code>src/churn_preproc/</code> 디렉토리에 이미 패키지 소스가 있습니다 (Repo / Workspace 동기화 시). 없다면 README 의 “Setup” 섹션을 따라 패키지를 먼저 생성하세요.</p>
 <div id="cell-3" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sh</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># uv 설치 (없는 경우만)</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>pip install <span class="op">-</span>q <span class="st">"uv&gt;=0.5.0"</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>uv <span class="op">--</span>version</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<section id="패키지-디렉토리-확인" class="level3">
-<h3 class="anchored" data-anchor-id="패키지-디렉토리-확인">패키지 디렉토리 확인</h3>
-<div id="cell-5" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sh</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 노트북이 있는 디렉토리의 samsung_preproc 패키지 경로 찾기</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># (Databricks Repos 사용 시 자동으로 sync 됨)</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>PKG_DIR<span class="op">=</span>$(find <span class="op">/</span>Workspace <span class="op">-</span><span class="bu">type</span> d <span class="op">-</span>name samsung_preproc <span class="op">-</span><span class="kw">not</span> <span class="op">-</span>path <span class="st">'*/src/samsung_preproc/*'</span> <span class="dv">2</span><span class="op">&gt;/</span>dev<span class="op">/</span>null <span class="op">|</span> head <span class="op">-</span><span class="dv">1</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> [ <span class="op">-</span>z <span class="st">"$PKG_DIR"</span> ]<span class="op">;</span> then</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  PKG_DIR<span class="op">=</span>$(find <span class="op">/</span>tmp <span class="op">-</span><span class="bu">type</span> d <span class="op">-</span>name samsung_preproc <span class="op">-</span><span class="kw">not</span> <span class="op">-</span>path <span class="st">'*/src/samsung_preproc/*'</span> <span class="dv">2</span><span class="op">&gt;/</span>dev<span class="op">/</span>null <span class="op">|</span> head <span class="op">-</span><span class="dv">1</span>)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>fi</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>echo <span class="st">"PKG_DIR=$PKG_DIR"</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>ls <span class="op">-</span>la <span class="st">"$PKG_DIR"</span> <span class="dv">2</span><span class="op">&gt;/</span>dev<span class="op">/</span>null <span class="op">||</span> echo <span class="st">"패키지 디렉토리 못 찾음 — README 의 Setup 따라 만드세요"</span></span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-</section>
 <section id="wheel-빌드" class="level3">
 <h3 class="anchored" data-anchor-id="wheel-빌드">Wheel 빌드</h3>
 <p>디렉토리 찾았으면 거기서 <code>uv build</code> 실행. wheel 은 <code>dist/</code> 에 생성됩니다.</p>
-<div id="cell-7" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> subprocess, os, glob</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 패키지 경로 — 본인 환경에 맞게 수정</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>PKG_DIR <span class="op">=</span> os.path.dirname(os.path.abspath(<span class="st">"."</span>))  <span class="co"># 노트북 위치 기준 상위</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>candidates <span class="op">=</span> glob.glob(<span class="ss">f"</span><span class="sc">{</span>PKG_DIR<span class="sc">}</span><span class="ss">/**/samsung_preproc/pyproject.toml"</span>, recursive<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> candidates:</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    candidates <span class="op">=</span> glob.glob(<span class="st">"/Workspace/**/samsung_preproc/pyproject.toml"</span>, recursive<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> candidates, <span class="st">"samsung_preproc/pyproject.toml 을 찾을 수 없습니다. README Setup 참고."</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>PKG_DIR <span class="op">=</span> os.path.dirname(candidates[<span class="dv">0</span>])</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"PKG_DIR = </span><span class="sc">{</span>PKG_DIR<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 빌드</span></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> subprocess.run(</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    [<span class="st">"uv"</span>, <span class="st">"build"</span>, <span class="st">"--out-dir"</span>, <span class="st">"/tmp/wheels"</span>],</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    cwd<span class="op">=</span>PKG_DIR, capture_output<span class="op">=</span><span class="va">True</span>, text<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.stdout)</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> result.returncode <span class="op">!=</span> <span class="dv">0</span>:</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"STDERR:"</span>, result.stderr)</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"uv build 실패"</span>)</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>WHEEL <span class="op">=</span> glob.glob(<span class="st">"/tmp/wheels/samsung_preproc-*.whl"</span>)[<span class="dv">0</span>]</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">✓ Built: </span><span class="sc">{</span>WHEEL<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-5" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> subprocess, os, glob</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 노트북 위치 기준: 같은 디렉토리에 churn_preproc/ 패키지 소스가 함께 제공됨.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Databricks 노트북 컨텍스트에서 현재 노트북의 워크스페이스 경로를 가져옴.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>ctx <span class="op">=</span> dbutils.notebook.entry_point.getDbutils().notebook().getContext()</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>notebook_dir <span class="op">=</span> <span class="st">"/Workspace"</span> <span class="op">+</span> os.path.dirname(ctx.notebookPath().get())</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>PKG_DIR <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>notebook_dir<span class="sc">}</span><span class="ss">/churn_preproc"</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> os.path.exists(<span class="ss">f"</span><span class="sc">{</span>PKG_DIR<span class="sc">}</span><span class="ss">/pyproject.toml"</span>), (</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"pyproject.toml not found at </span><span class="sc">{</span>PKG_DIR<span class="sc">}</span><span class="ss">. "</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"churn_preproc 패키지가 노트북과 같은 디렉토리에 sync 되어 있어야 합니다."</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"PKG_DIR = </span><span class="sc">{</span>PKG_DIR<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co"># uv build → /tmp/wheels</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> subprocess.run(</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    [<span class="st">"uv"</span>, <span class="st">"build"</span>, <span class="st">"--out-dir"</span>, <span class="st">"/tmp/wheels"</span>],</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    cwd<span class="op">=</span>PKG_DIR, capture_output<span class="op">=</span><span class="va">True</span>, text<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.stdout)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> result.returncode <span class="op">!=</span> <span class="dv">0</span>:</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"STDERR:"</span>, result.stderr)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="st">"uv build 실패"</span>)</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>WHEEL <span class="op">=</span> glob.glob(<span class="st">"/tmp/wheels/churn_preproc-*.whl"</span>)[<span class="dv">0</span>]</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">✓ Built: </span><span class="sc">{</span>WHEEL<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 </section>
 <section id="step-2.-빌드한-wheel-로컬-테스트" class="level2">
 <h2 class="anchored" data-anchor-id="step-2.-빌드한-wheel-로컬-테스트">Step 2. 빌드한 wheel 로컬 테스트</h2>
 <p>log_model 전에 wheel 이 설치되고 import 가 잘 되는지 검증.</p>
+<div id="cell-7" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>pip install <span class="op">-</span>q <span class="op">/</span>tmp<span class="op">/</span>wheels<span class="op">/</span>churn_preproc<span class="op">-</span><span class="fl">0.1.0</span><span class="op">-</span>py3<span class="op">-</span>none<span class="op">-</span><span class="bu">any</span>.whl</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>restart_python</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="cell-8" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>run .<span class="op">/</span>config</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 <div id="cell-9" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>pip install <span class="op">-</span>q <span class="op">/</span>tmp<span class="op">/</span>wheels<span class="op">/</span>samsung_preproc<span class="op">-</span><span class="fl">0.1.0</span><span class="op">-</span>py3<span class="op">-</span>none<span class="op">-</span><span class="bu">any</span>.whl</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>restart_python</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="cell-10" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>run .<span class="op">/</span>config</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="cell-11" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> mlflow, os, pandas <span class="im">as</span> pd, joblib, glob</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>mlflow.set_registry_uri(<span class="st">"databricks-uc"</span>)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>mlflow.set_experiment(experiment_path)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># wheel 사용 확인</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> samsung_preproc <span class="im">import</span> preprocess, __version__</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"samsung_preproc==</span><span class="sc">{</span>__version__<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> mlflow, os, pandas <span class="im">as</span> pd, joblib, glob, sklearn, numpy <span class="im">as</span> np, cloudpickle</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>mlflow.set_registry_uri(<span class="st">"databricks-uc"</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>mlflow.set_experiment(experiment_path)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># wheel 사용 확인</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> churn_preproc <span class="im">import</span> preprocess, __version__</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"churn_preproc==</span><span class="sc">{</span>__version__<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co"># %restart_python 이후 변수 손실 — wheel 경로 재정의</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>WHEEL <span class="op">=</span> glob.glob(<span class="st">"/tmp/wheels/churn_preproc-*.whl"</span>)[<span class="dv">0</span>]</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"WHEEL = </span><span class="sc">{</span>WHEEL<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="step-3.-학습-wheel-의-함수-사용" class="level2">
 <h2 class="anchored" data-anchor-id="step-3.-학습-wheel-의-함수-사용">Step 3. 학습 — wheel 의 함수 사용</h2>
-<div id="cell-13" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.ensemble <span class="im">import</span> RandomForestClassifier</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> OneHotEncoder</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.compose <span class="im">import</span> ColumnTransformer</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.pipeline <span class="im">import</span> Pipeline</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>pdf <span class="op">=</span> spark.table(<span class="ss">f"</span><span class="sc">{</span>catalog<span class="sc">}</span><span class="ss">.</span><span class="sc">{</span>schema<span class="sc">}</span><span class="ss">.customers"</span>).toPandas()</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>pdf <span class="op">=</span> preprocess(pdf)   <span class="co"># ← wheel 의 preprocess</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>NUMERIC <span class="op">=</span> [<span class="st">"age"</span>, <span class="st">"tenure_months"</span>, <span class="st">"monthly_charges"</span>, <span class="st">"total_charges"</span>, <span class="st">"support_tickets"</span>, <span class="st">"ltv"</span>]</span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>CATEGORICAL <span class="op">=</span> [<span class="st">"risk_bucket"</span>, <span class="st">"tenure_band"</span>]</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>FEATURES <span class="op">=</span> NUMERIC <span class="op">+</span> CATEGORICAL</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>X_train, X_test, y_train, y_test <span class="op">=</span> train_test_split(</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    pdf[FEATURES], pdf[<span class="st">"churned"</span>], test_size<span class="op">=</span><span class="fl">0.2</span>, random_state<span class="op">=</span><span class="dv">42</span></span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>pipe <span class="op">=</span> Pipeline([</span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"prep"</span>, ColumnTransformer([</span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"cat"</span>, OneHotEncoder(handle_unknown<span class="op">=</span><span class="st">"ignore"</span>), CATEGORICAL),</span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    ], remainder<span class="op">=</span><span class="st">"passthrough"</span>)),</span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"rf"</span>, RandomForestClassifier(n_estimators<span class="op">=</span><span class="dv">100</span>, max_depth<span class="op">=</span><span class="dv">8</span>, random_state<span class="op">=</span><span class="dv">42</span>)),</span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>])</span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>pipe.fit(X_train, y_train)</span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"test accuracy = </span><span class="sc">{</span>pipe<span class="sc">.</span>score(X_test, y_test)<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-11" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.ensemble <span class="im">import</span> RandomForestClassifier</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> OneHotEncoder</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.compose <span class="im">import</span> ColumnTransformer</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.pipeline <span class="im">import</span> Pipeline</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>pdf <span class="op">=</span> spark.table(<span class="ss">f"</span><span class="sc">{</span>catalog<span class="sc">}</span><span class="ss">.</span><span class="sc">{</span>schema<span class="sc">}</span><span class="ss">.customers"</span>).toPandas()</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>pdf <span class="op">=</span> preprocess(pdf)   <span class="co"># ← wheel 의 preprocess</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>NUMERIC <span class="op">=</span> [<span class="st">"age"</span>, <span class="st">"tenure_months"</span>, <span class="st">"monthly_charges"</span>, <span class="st">"total_charges"</span>, <span class="st">"support_tickets"</span>, <span class="st">"ltv"</span>]</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>CATEGORICAL <span class="op">=</span> [<span class="st">"risk_bucket"</span>, <span class="st">"tenure_band"</span>]</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>FEATURES <span class="op">=</span> NUMERIC <span class="op">+</span> CATEGORICAL</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>X_train, X_test, y_train, y_test <span class="op">=</span> train_test_split(</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    pdf[FEATURES], pdf[<span class="st">"churned"</span>], test_size<span class="op">=</span><span class="fl">0.2</span>, random_state<span class="op">=</span><span class="dv">42</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>pipe <span class="op">=</span> Pipeline([</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"prep"</span>, ColumnTransformer([</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        (<span class="st">"cat"</span>, OneHotEncoder(handle_unknown<span class="op">=</span><span class="st">"ignore"</span>), CATEGORICAL),</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    ], remainder<span class="op">=</span><span class="st">"passthrough"</span>)),</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"rf"</span>, RandomForestClassifier(n_estimators<span class="op">=</span><span class="dv">100</span>, max_depth<span class="op">=</span><span class="dv">8</span>, random_state<span class="op">=</span><span class="dv">42</span>)),</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>pipe.fit(X_train, y_train)</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"test accuracy = </span><span class="sc">{</span>pipe<span class="sc">.</span>score(X_test, y_test)<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="step-4.-pythonmodel-wheel-에서-import" class="level2">
 <h2 class="anchored" data-anchor-id="step-4.-pythonmodel-wheel-에서-import">Step 4. PythonModel — wheel 에서 import</h2>
-<div id="cell-15" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ChurnWithWheel(mlflow.pyfunc.PythonModel):</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> load_context(<span class="va">self</span>, context):</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        <span class="im">import</span> joblib</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.model <span class="op">=</span> joblib.load(context.artifacts[<span class="st">"model"</span>])</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> predict(<span class="va">self</span>, context, model_input: pd.DataFrame, params<span class="op">=</span><span class="va">None</span>):</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ← 서빙 컨테이너 안에서 wheel 이 설치되어 있음</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="im">from</span> samsung_preproc <span class="im">import</span> preprocess</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        enriched <span class="op">=</span> preprocess(model_input)</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 학습 시 사용한 컬럼 순서 유지</span></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        cols <span class="op">=</span> [<span class="st">"age"</span>, <span class="st">"tenure_months"</span>, <span class="st">"monthly_charges"</span>, <span class="st">"total_charges"</span>,</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>                <span class="st">"support_tickets"</span>, <span class="st">"ltv"</span>, <span class="st">"risk_bucket"</span>, <span class="st">"tenure_band"</span>]</span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> pd.DataFrame({<span class="st">"prediction"</span>: <span class="va">self</span>.model.predict(enriched[cols])})</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-13" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ChurnWithWheel(mlflow.pyfunc.PythonModel):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> load_context(<span class="va">self</span>, context):</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="im">import</span> joblib</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.model <span class="op">=</span> joblib.load(context.artifacts[<span class="st">"model"</span>])</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> predict(<span class="va">self</span>, context, model_input: pd.DataFrame, params<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ← 서빙 컨테이너 안에서 wheel 이 설치되어 있음</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        <span class="im">from</span> churn_preproc <span class="im">import</span> preprocess</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        enriched <span class="op">=</span> preprocess(model_input)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 학습 시 사용한 컬럼 순서 유지</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        cols <span class="op">=</span> [<span class="st">"age"</span>, <span class="st">"tenure_months"</span>, <span class="st">"monthly_charges"</span>, <span class="st">"total_charges"</span>,</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>                <span class="st">"support_tickets"</span>, <span class="st">"ltv"</span>, <span class="st">"risk_bucket"</span>, <span class="st">"tenure_band"</span>]</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> pd.DataFrame({<span class="st">"prediction"</span>: <span class="va">self</span>.model.predict(enriched[cols])})</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="step-5.-모델을-volume-에-저장-log_model-정석-패턴" class="level2">
 <h2 class="anchored" data-anchor-id="step-5.-모델을-volume-에-저장-log_model-정석-패턴">Step 5. 모델을 Volume 에 저장 + log_model (정석 패턴)</h2>
-<div id="cell-17" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>artifacts_dir <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>volume_path<span class="sc">}</span><span class="ss">/05_wheel"</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>os.makedirs(artifacts_dir, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>model_path <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>artifacts_dir<span class="sc">}</span><span class="ss">/pipeline.joblib"</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>joblib.dump(pipe, model_path)</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># input_example 은 raw input — preprocess 가 컬럼 추가</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>raw_example <span class="op">=</span> pdf[[<span class="st">"age"</span>, <span class="st">"tenure_months"</span>, <span class="st">"monthly_charges"</span>, <span class="st">"total_charges"</span>, <span class="st">"support_tickets"</span>]].iloc[:<span class="dv">5</span>]</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mlflow.models <span class="im">import</span> infer_signature</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>sig <span class="op">=</span> infer_signature(raw_example, pd.DataFrame({<span class="st">"prediction"</span>: [<span class="dv">0</span>]<span class="op">*</span><span class="dv">5</span>}))</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>wheel_basename <span class="op">=</span> os.path.basename(WHEEL)</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"wheel = </span><span class="sc">{</span>wheel_basename<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> mlflow.start_run(run_name<span class="op">=</span><span class="st">"wheel_packaging"</span>):</span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    info <span class="op">=</span> mlflow.pyfunc.log_model(</span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        name<span class="op">=</span><span class="st">"model"</span>,</span>
-<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>        python_model<span class="op">=</span>ChurnWithWheel(),</span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>        artifacts<span class="op">=</span>{<span class="st">"model"</span>: model_path},</span>
-<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>        code_paths<span class="op">=</span>[WHEEL],                                  <span class="co"># ← wheel 을 code/ 로 복사</span></span>
-<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>        extra_pip_requirements<span class="op">=</span>[<span class="ss">f"code/</span><span class="sc">{</span>wheel_basename<span class="sc">}</span><span class="ss">"</span>],   <span class="co"># ← 서빙 시 code/ 안의 wheel 을 pip install</span></span>
-<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>        signature<span class="op">=</span>sig,</span>
-<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>        input_example<span class="op">=</span>raw_example,</span>
-<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>        registered_model_name<span class="op">=</span>model_wheel,</span>
-<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>        pip_requirements<span class="op">=</span>[</span>
-<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>            <span class="st">"mlflow-skinny==2.20.0"</span>,</span>
-<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>            <span class="st">"cloudpickle==3.0.0"</span>,</span>
-<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>            <span class="st">"scikit-learn==1.4.2"</span>,</span>
-<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>            <span class="st">"pandas==2.2.2"</span>,</span>
-<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>            <span class="st">"numpy==1.26.4"</span>,</span>
-<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>            <span class="st">"joblib==1.4.0"</span>,</span>
-<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"code/</span><span class="sc">{</span>wheel_basename<span class="sc">}</span><span class="ss">"</span>,                        <span class="co"># ← lockdown 시에도 wheel 참조</span></span>
-<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>        ],</span>
-<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"✓ </span><span class="sc">{</span>model_wheel<span class="sc">}</span><span class="ss"> v</span><span class="sc">{</span>info<span class="sc">.</span>registered_model_version<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-15" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>artifacts_dir <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>volume_path<span class="sc">}</span><span class="ss">/05_wheel"</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>os.makedirs(artifacts_dir, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>model_path <span class="op">=</span> <span class="ss">f"</span><span class="sc">{</span>artifacts_dir<span class="sc">}</span><span class="ss">/pipeline.joblib"</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>joblib.dump(pipe, model_path)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># input_example 은 raw input — preprocess 가 컬럼 추가</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>raw_example <span class="op">=</span> pdf[[<span class="st">"age"</span>, <span class="st">"tenure_months"</span>, <span class="st">"monthly_charges"</span>, <span class="st">"total_charges"</span>, <span class="st">"support_tickets"</span>]].iloc[:<span class="dv">5</span>]</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mlflow.models <span class="im">import</span> infer_signature</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>sig <span class="op">=</span> infer_signature(raw_example, pd.DataFrame({<span class="st">"prediction"</span>: [<span class="dv">0</span>]<span class="op">*</span><span class="dv">5</span>}))</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>wheel_basename <span class="op">=</span> os.path.basename(WHEEL)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"wheel = </span><span class="sc">{</span>wheel_basename<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> mlflow.start_run(run_name<span class="op">=</span><span class="st">"wheel_packaging"</span>):</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    info <span class="op">=</span> mlflow.pyfunc.log_model(</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        name<span class="op">=</span><span class="st">"model"</span>,</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        python_model<span class="op">=</span>ChurnWithWheel(),</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        artifacts<span class="op">=</span>{<span class="st">"model"</span>: model_path},</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        code_paths<span class="op">=</span>[WHEEL],                                  <span class="co"># ← wheel 을 code/ 로 복사</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        signature<span class="op">=</span>sig,</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>        input_example<span class="op">=</span>raw_example,</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>        registered_model_name<span class="op">=</span>model_wheel,</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        pip_requirements<span class="op">=</span>[                                   <span class="co"># ← lockdown: 자동 추론 churn-preproc==0.1.0 (PyPI 미공개) 제외</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"mlflow==</span><span class="sc">{</span>mlflow<span class="sc">.</span>__version__<span class="sc">}</span><span class="ss">"</span>,                 <span class="co">#   학습 시점 환경 버전을 그대로 pin → endpoint unpickle 호환</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"cloudpickle==</span><span class="sc">{</span>cloudpickle<span class="sc">.</span>__version__<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"scikit-learn==</span><span class="sc">{</span>sklearn<span class="sc">.</span>__version__<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"pandas==</span><span class="sc">{</span>pd<span class="sc">.</span>__version__<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"numpy==</span><span class="sc">{</span>np<span class="sc">.</span>__version__<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"joblib==</span><span class="sc">{</span>joblib<span class="sc">.</span>__version__<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f"code/</span><span class="sc">{</span>wheel_basename<span class="sc">}</span><span class="ss">"</span>,                        <span class="co"># ← endpoint 환경에서 wheel 직접 pip install</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"✓ </span><span class="sc">{</span>model_wheel<span class="sc">}</span><span class="ss"> v</span><span class="sc">{</span>info<span class="sc">.</span>registered_model_version<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="step-6.-모델-디렉토리-확인-wheel-이-code-안에-들어갔는지" class="level2">
 <h2 class="anchored" data-anchor-id="step-6.-모델-디렉토리-확인-wheel-이-code-안에-들어갔는지">Step 6. 모델 디렉토리 확인 — wheel 이 code/ 안에 들어갔는지</h2>
-<div id="cell-19" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>local <span class="op">=</span> mlflow.artifacts.download_artifacts(info.model_uri)</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== requirements.txt ==="</span>)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">open</span>(os.path.join(local, <span class="st">"requirements.txt"</span>)).read())</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== code/ 내용 ==="</span>)</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> f <span class="kw">in</span> os.listdir(os.path.join(local, <span class="st">"code"</span>)):</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>f<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-17" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>local <span class="op">=</span> mlflow.artifacts.download_artifacts(info.model_uri)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== requirements.txt ==="</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">open</span>(os.path.join(local, <span class="st">"requirements.txt"</span>)).read())</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"=== code/ 내용 ==="</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> f <span class="kw">in</span> os.listdir(os.path.join(local, <span class="st">"code"</span>)):</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>f<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="step-7.-uv-격리-환경에서-검증" class="level2">
 <h2 class="anchored" data-anchor-id="step-7.-uv-격리-환경에서-검증">Step 7. uv 격리 환경에서 검증</h2>
 <p><code>mlflow.models.predict(env_manager="uv")</code> 가 wheel 까지 포함한 새 환경을 만들어 실행합니다. <strong>서빙 빌드와 동일한 의존성 해결 경로</strong>를 거치므로 production 사고를 사전에 잡아줍니다.</p>
-<div id="cell-21" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>mlflow.models.predict(</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    model_uri<span class="op">=</span>info.model_uri,</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    input_data<span class="op">=</span>{<span class="st">"dataframe_split"</span>: {</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"columns"</span>: <span class="bu">list</span>(raw_example.columns),</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"data"</span>:    raw_example.values.tolist(),</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    }},</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    env_manager<span class="op">=</span><span class="st">"uv"</span>,</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-19" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>mlflow.models.predict(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    model_uri<span class="op">=</span>info.model_uri,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    input_data<span class="op">=</span>{<span class="st">"dataframe_split"</span>: {</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"columns"</span>: <span class="bu">list</span>(raw_example.columns),</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"data"</span>:    raw_example.values.tolist(),</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    }},</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    env_manager<span class="op">=</span><span class="st">"uv"</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="step-8.-alias-설정" class="level2">
 <h2 class="anchored" data-anchor-id="step-8.-alias-설정">Step 8. Alias 설정</h2>
-<div id="cell-23" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mlflow <span class="im">import</span> MlflowClient</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>MlflowClient().set_registered_model_alias(model_wheel, <span class="st">"Champion"</span>, info.registered_model_version)</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"✓ </span><span class="sc">{</span>model_wheel<span class="sc">}</span><span class="ss">@Champion → v</span><span class="sc">{</span>info<span class="sc">.</span>registered_model_version<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="cell-21" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mlflow <span class="im">import</span> MlflowClient</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>MlflowClient().set_registered_model_alias(model_wheel, <span class="st">"Champion"</span>, info.registered_model_version)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"✓ </span><span class="sc">{</span>model_wheel<span class="sc">}</span><span class="ss">@Champion → v</span><span class="sc">{</span>info<span class="sc">.</span>registered_model_version<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="정리-code_paths-vs-wheel" class="level2">
@@ -868,7 +879,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>UC Volume 사용 시</strong>: endpoint service principal 에 Volume READ grant 필요.</li>
 <li><strong>code_paths 디렉토리 + wheel 혼합 X</strong>: import shadowing 발생 — wheel 만 쓰세요.</li>
 </ul>
-<p>→ 다음: <strong><code>06_model_serving</code></strong> — endpoint 생성, 호출, blue/green, batch</p>
+<p>→ 다음: <strong><code>06_model_serving</code></strong> — endpoint 생성, 호출, blue/green</p>
 
 
 </section>

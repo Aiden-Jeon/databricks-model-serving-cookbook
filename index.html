@@ -292,6 +292,10 @@ ul.task-list li input[type="checkbox"] {
     <a class="dropdown-item" href="./03-model-serving/README.html">
  <span class="dropdown-text">03 · Model Serving</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="./04-gpu-torch-serving/README.html">
+ <span class="dropdown-text">04 · GPU Torch Serving</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item">
@@ -480,13 +484,30 @@ ul.task-list li input[type="checkbox"] {
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="./docs/README.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">참고 자료</span></a>
+            <a href="./04-gpu-torch-serving/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">04 · GPU Torch Serving</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="토글 섹션">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-gpu-torch-serving/01-train-and-serve.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">01 · GPU PyTorch — Train · Log · Serve</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./docs/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">참고 자료</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./docs/slides/250530_Hadns-on_Sessionpptx.html" class="sidebar-item-text sidebar-link">
@@ -571,12 +592,12 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td><strong>04-gpu-torch-serving</strong></td>
 <td>—</td>
-<td><a href="04-gpu-torch-serving/01-train-and-serve.ipynb">01 · GPU PyTorch — train · log · serve (<code>workload_type=GPU_SMALL</code>)</a></td>
+<td><a href="./04-gpu-torch-serving/01-train-and-serve.html">01 · GPU PyTorch — train · log · serve (<code>workload_type=GPU_SMALL</code>)</a></td>
 <td>(같은 노트북에서 <code>code_paths</code> 패턴 사용)</td>
 </tr>
 </tbody>
 </table>
-<p><code>00-setup</code> (01 챕터) 은 모든 챕터가 공유하는 UC 리소스(catalog/schema/volume/customer table)와 MLflow registry 를 준비합니다. 한 번만 실행하면 다른 챕터의 사전 조건이 끝납니다. 챕터별 노트북 목록은 <a href="./01-mlflow-logging/README.html"><code>01-mlflow-logging/README.md</code></a>, <a href="./02-code-packaging/README.html"><code>02-code-packaging/README.md</code></a>, <a href="./03-model-serving/README.html"><code>03-model-serving/README.md</code></a>, <a href="04-gpu-torch-serving/README.md"><code>04-gpu-torch-serving/README.md</code></a> 에서 확인하세요.</p>
+<p><code>00-setup</code> (01 챕터) 은 모든 챕터가 공유하는 UC 리소스(catalog/schema/volume/customer table)와 MLflow registry 를 준비합니다. 한 번만 실행하면 다른 챕터의 사전 조건이 끝납니다. 챕터별 노트북 목록은 <a href="./01-mlflow-logging/README.html"><code>01-mlflow-logging/README.md</code></a>, <a href="./02-code-packaging/README.html"><code>02-code-packaging/README.md</code></a>, <a href="./03-model-serving/README.html"><code>03-model-serving/README.md</code></a>, <a href="./04-gpu-torch-serving/README.html"><code>04-gpu-torch-serving/README.md</code></a> 에서 확인하세요.</p>
 <section id="행-학습-단계" class="level3">
 <h3 class="anchored" data-anchor-id="행-학습-단계">행: 학습 단계</h3>
 <p>행마다 다루는 핵심은 다음과 같습니다.</p>

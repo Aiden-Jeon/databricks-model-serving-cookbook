@@ -21,11 +21,13 @@ model_deps = f"{catalog}.{schema}.churn_deps"
 model_codepaths = f"{catalog}.{schema}.churn_codepaths"
 model_wheel = f"{catalog}.{schema}.churn_wheel"
 model_express = f"{catalog}.{schema}.churn_express"
+model_torch_gpu = f"{catalog}.{schema}.churn_torch_gpu"
 
 # Serving endpoint 이름들 — workspace에서 유일해야 하므로 prefix 추가 권장
 endpoint_basic = "churn-basic-endpoint"
 endpoint_wheel = "churn-wheel-endpoint"
 endpoint_express = "churn-express-endpoint"
+endpoint_torch_gpu = "churn-torch-gpu-endpoint"
 
 # Experiment path — 워크스페이스 사용자별 분리
 import os

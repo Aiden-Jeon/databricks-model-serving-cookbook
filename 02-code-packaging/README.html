@@ -291,6 +291,10 @@ ul.task-list li input[type="checkbox"] {
     <a class="dropdown-item" href="../03-model-serving/README.html">
  <span class="dropdown-text">03 · Model Serving</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../04-gpu-torch-serving/README.html">
+ <span class="dropdown-text">04 · GPU Torch Serving</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item">
@@ -479,13 +483,30 @@ ul.task-list li input[type="checkbox"] {
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="../docs/README.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">참고 자료</span></a>
+            <a href="../04-gpu-torch-serving/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">04 · GPU Torch Serving</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="토글 섹션">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../04-gpu-torch-serving/01-train-and-serve.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">01 · GPU PyTorch — Train · Log · Serve</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../docs/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">참고 자료</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../docs/slides/250530_Hadns-on_Sessionpptx.html" class="sidebar-item-text sidebar-link">
@@ -551,11 +572,11 @@ ul.task-list li input[type="checkbox"] {
 <td>02</td>
 <td><a href="../02-code-packaging/02-uv-wheel.html"><code>02-uv-wheel.ipynb</code></a></td>
 <td><code>uv build</code> → wheel → <code>code_paths</code> + <code>extra_pip_requirements</code> (production 권장)</td>
-<td>01, <a href="samsung_preproc/"><code>samsung_preproc/</code></a></td>
+<td>01, <a href="churn_preproc/"><code>churn_preproc/</code></a></td>
 </tr>
 </tbody>
 </table>
-<p><code>samsung_preproc/</code> 은 02 노트북에서 wheel 빌드 대상으로 쓰는 샘플 패키지입니다. <code>pyproject.toml</code> + <code>src/samsung_preproc/</code> (src-layout).</p>
+<p><code>churn_preproc/</code> 은 02 노트북에서 wheel 빌드 대상으로 쓰는 샘플 패키지입니다. <code>pyproject.toml</code> + <code>src/churn_preproc/</code> (src-layout).</p>
 </section>
 <section id="매트릭스" class="level2">
 <h2 class="anchored" data-anchor-id="매트릭스">🔀 매트릭스</h2>
@@ -643,7 +664,7 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td>02-uv-wheel</td>
 <td><code>main.model_serving_cookbook.churn_wheel@champion</code></td>
-<td><code>/tmp/wheels/samsung_preproc-0.1.0-py3-none-any.whl</code></td>
+<td><code>/tmp/wheels/churn_preproc-0.1.0-py3-none-any.whl</code></td>
 </tr>
 </tbody>
 </table>

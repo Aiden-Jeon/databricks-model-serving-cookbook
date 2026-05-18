@@ -1368,6 +1368,162 @@
     ]
   },
   {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "",
+    "text": "PyTorch MLP 를 단일 GPU 에서 학습하고, MLflow 의 pytorch flavor 로 logging 한 뒤 GPU Model Serving endpoint 로 배포합니다.",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#이-노트북에서-배우는-것",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#이-노트북에서-배우는-것",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "이 노트북에서 배우는 것",
+    "text": "이 노트북에서 배우는 것\n\nGPU 학습: torch.cuda device 설정, DataLoader → MLP → Adam 학습 루프\nmlflow.pytorch flavor: state_dict 와 클래스 정의를 함께 logging, signature 추론\nUC 등록 + alias: models:/&lt;name&gt;@champion URI\nGPU endpoint: workload_type=GPU_SMALL (T4), scale_to_zero_enabled=True\n호출: REST + Python SDK 로 endpoint 검증",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#사전-요구사항",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#사전-요구사항",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "사전 요구사항",
+    "text": "사전 요구사항\n\n../01-mlflow-logging/00-setup.ipynb 을 먼저 실행해 customers 테이블이 있어야 함\nGPU 클러스터 (DBR ML 15.x 이상, 예: g4dn.xlarge 1× T4)\nServing entitlement (workspace admin 이 enable)\n\n\n%pip install -q \"mlflow&gt;=2.20.0\" \"databricks-sdk&gt;=0.30.0\" \"torch&gt;=2.0\"\n%restart_python\n\n\n%run ./config\n\n\nimport mlflow\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#step-1.-gpu-가용성-확인",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#step-1.-gpu-가용성-확인",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "Step 1. GPU 가용성 확인",
+    "text": "Step 1. GPU 가용성 확인\ntorch.cuda.is_available() 가 False 면 클러스터가 GPU 가 아닙니다. 노트북을 멈추고 GPU 클러스터로 attach 하세요.\n\nimport torch\n\nassert torch.cuda.is_available(), \"GPU 가 보이지 않습니다. DBR ML + GPU 인스턴스(예: g4dn.xlarge) 클러스터로 변경하세요.\"\n\ndevice = torch.device(\"cuda:0\")\nprint(f\"device       : {device}\")\nprint(f\"gpu          : {torch.cuda.get_device_name(0)}\")\nprint(f\"torch        : {torch.__version__}\")\nprint(f\"cuda runtime : {torch.version.cuda}\")",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#step-2.-데이터-로드-torch-dataloader",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#step-2.-데이터-로드-torch-dataloader",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "Step 2. 데이터 로드 → torch DataLoader",
+    "text": "Step 2. 데이터 로드 → torch DataLoader\n01 챕터에서 만든 customers 테이블을 그대로 사용. binary churn (0/1) target.\n\nimport pandas as pd\nfrom sklearn.model_selection import train_test_split\nfrom torch.utils.data import TensorDataset, DataLoader\n\npdf = spark.table(f\"{catalog}.{schema}.customers\").toPandas()\n\nFEATURES = [\"age\", \"tenure_months\", \"monthly_charges\", \"total_charges\", \"support_tickets\"]\nTARGET = \"churned\"\n\nX_train, X_test, y_train, y_test = train_test_split(\n    pdf[FEATURES].values, pdf[TARGET].values,\n    test_size=0.2, stratify=pdf[TARGET], random_state=42,\n)\n\n# 표준화 — endpoint 호출 시에도 같은 통계가 필요하므로 train 통계를 저장\nmean = X_train.mean(axis=0)\nstd = X_train.std(axis=0) + 1e-6\nX_train_n = (X_train - mean) / std\nX_test_n = (X_test - mean) / std\n\ntrain_ds = TensorDataset(\n    torch.tensor(X_train_n, dtype=torch.float32),\n    torch.tensor(y_train, dtype=torch.long),\n)\ntest_ds = TensorDataset(\n    torch.tensor(X_test_n, dtype=torch.float32),\n    torch.tensor(y_test, dtype=torch.long),\n)\n\ntrain_loader = DataLoader(train_ds, batch_size=128, shuffle=True)\ntest_loader = DataLoader(test_ds, batch_size=256, shuffle=False)\n\nprint(f\"train batches={len(train_loader)}, test batches={len(test_loader)}\")",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#step-3.-mlp-정의",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#step-3.-mlp-정의",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "Step 3. MLP 정의",
+    "text": "Step 3. MLP 정의\n입력 5 (feature) → hidden 64 → output 2 (logits). 작은 모델이지만 mlflow.pytorch flavor 의 logging 패턴을 그대로 보여 줍니다.\n\nimport torch.nn as nn\n\nclass ChurnMLP(nn.Module):\n    def __init__(self, in_dim: int = 5, hidden: int = 64, out_dim: int = 2):\n        super().__init__()\n        self.net = nn.Sequential(\n            nn.Linear(in_dim, hidden),\n            nn.ReLU(),\n            nn.Linear(hidden, hidden),\n            nn.ReLU(),\n            nn.Linear(hidden, out_dim),\n        )\n\n    def forward(self, x):\n        return self.net(x)\n\nmodel = ChurnMLP().to(device)\nprint(model)",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#step-4.-학습-루프",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#step-4.-학습-루프",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "Step 4. 학습 루프",
+    "text": "Step 4. 학습 루프\n\nOptimizer: Adam (lr=1e-3)\nLoss: CrossEntropyLoss\nEpoch: 10 (5K row 모델이라 빠르게 수렴)\nMLflow autolog 대신 수동 로깅으로 각 epoch metric 캡처\n\n\nimport torch.optim as optim\n\nEPOCHS = 10\nLR = 1e-3\n\nloss_fn = nn.CrossEntropyLoss()\noptimizer = optim.Adam(model.parameters(), lr=LR)\n\nwith mlflow.start_run(run_name=\"churn-torch-gpu\") as run:\n    mlflow.log_params({\"epochs\": EPOCHS, \"lr\": LR, \"hidden\": 64, \"device\": \"cuda:0\"})\n\n    for epoch in range(1, EPOCHS + 1):\n        model.train()\n        running_loss = 0.0\n        for xb, yb in train_loader:\n            xb, yb = xb.to(device), yb.to(device)\n            optimizer.zero_grad()\n            logits = model(xb)\n            loss = loss_fn(logits, yb)\n            loss.backward()\n            optimizer.step()\n            running_loss += loss.item() * xb.size(0)\n        train_loss = running_loss / len(train_ds)\n\n        model.eval()\n        correct = 0\n        with torch.no_grad():\n            for xb, yb in test_loader:\n                xb, yb = xb.to(device), yb.to(device)\n                pred = model(xb).argmax(dim=1)\n                correct += (pred == yb).sum().item()\n        val_acc = correct / len(test_ds)\n\n        mlflow.log_metrics({\"train/loss\": train_loss, \"val/acc\": val_acc}, step=epoch)\n        print(f\"epoch {epoch:&gt;2d}  train_loss={train_loss:.4f}  val_acc={val_acc:.4f}\")\n\n    run_id = run.info.run_id\n    print(f\"\\nrun_id = {run_id}\")",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#step-5.-mlflow-pytorch-flavor-로-logging-uc-등록",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#step-5.-mlflow-pytorch-flavor-로-logging-uc-등록",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "Step 5. MLflow pytorch flavor 로 logging + UC 등록",
+    "text": "Step 5. MLflow pytorch flavor 로 logging + UC 등록\nmlflow.pytorch.log_model 은 state_dict 와 모델 클래스 정의를 함께 logging 합니다. 클래스 정의를 endpoint 가 import 할 수 있도록 code_paths 로 모듈을 첨부하는 것이 일반적입니다. 본 노트북은 노트북 셀 안에 클래스가 정의돼 있으므로 code_paths 없이 pickle-by-reference 가 되도록 __main__ 모듈에 두는 것을 피하기 위해 임시 모듈 파일을 생성합니다.\n\n# 클래스 정의를 별도 .py 로 떨어뜨려야 pickle 이 endpoint 에서 복원 가능\nimport os, textwrap\n\nCODE_DIR = \"/tmp/churn_torch_code\"\nos.makedirs(CODE_DIR, exist_ok=True)\n\nwith open(f\"{CODE_DIR}/churn_model.py\", \"w\") as f:\n    f.write(textwrap.dedent('''\n        import torch.nn as nn\n\n        class ChurnMLP(nn.Module):\n            def __init__(self, in_dim: int = 5, hidden: int = 64, out_dim: int = 2):\n                super().__init__()\n                self.net = nn.Sequential(\n                    nn.Linear(in_dim, hidden),\n                    nn.ReLU(),\n                    nn.Linear(hidden, hidden),\n                    nn.ReLU(),\n                    nn.Linear(hidden, out_dim),\n                )\n\n            def forward(self, x):\n                return self.net(x)\n    ''').strip() + \"\\n\")\n\nprint(f\"✓ wrote {CODE_DIR}/churn_model.py\")\n\n\n# 같은 정의를 import 해서 state_dict 옮기기 — pickle 호환성 보장\nimport sys\nsys.path.insert(0, CODE_DIR)\nfrom churn_model import ChurnMLP as ChurnMLPModule  # noqa: E402\n\nexport_model = ChurnMLPModule().to(device)\nexport_model.load_state_dict(model.state_dict())\nexport_model.eval()\n\n\nimport numpy as np\nfrom mlflow.models import infer_signature\n\n# Signature 추론용 sample input (raw — 표준화 전)\nsample_input = pdf[FEATURES].head(3).values.astype(\"float32\")\n# 추론용 wrapper 가 표준화까지 책임지도록 PyFunc 으로 logging\nclass ChurnPyfunc(mlflow.pyfunc.PythonModel):\n    def load_context(self, context):\n        import torch, json\n        import sys, os\n        sys.path.insert(0, context.artifacts[\"code\"])\n        from churn_model import ChurnMLP\n\n        self.device = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\n        self.model = ChurnMLP()\n        self.model.load_state_dict(torch.load(context.artifacts[\"state_dict\"], map_location=self.device))\n        self.model.to(self.device).eval()\n\n        stats = json.load(open(context.artifacts[\"stats\"]))\n        self.mean = np.array(stats[\"mean\"], dtype=\"float32\")\n        self.std = np.array(stats[\"std\"], dtype=\"float32\")\n\n    def predict(self, context, model_input, params=None):\n        import torch\n        arr = np.asarray(model_input, dtype=\"float32\")\n        normed = (arr - self.mean) / self.std\n        with torch.no_grad():\n            logits = self.model(torch.from_numpy(normed).to(self.device))\n            probs = torch.softmax(logits, dim=1)[:, 1].cpu().numpy()\n        return probs\n\n# state_dict + 표준화 통계 + 코드 디렉터리를 artifacts 로 번들\nimport json\nSTATE_PATH = f\"{CODE_DIR}/state_dict.pt\"\nSTATS_PATH = f\"{CODE_DIR}/stats.json\"\ntorch.save(export_model.state_dict(), STATE_PATH)\njson.dump({\"mean\": mean.tolist(), \"std\": std.tolist()}, open(STATS_PATH, \"w\"))\n\nsample_output = np.array([0.12, 0.87, 0.34], dtype=\"float32\")  # 임의 — shape 만 신호\nsignature = infer_signature(sample_input, sample_output)\n\nwith mlflow.start_run(run_id=run_id):\n    info = mlflow.pyfunc.log_model(\n        name=\"model\",\n        python_model=ChurnPyfunc(),\n        artifacts={\n            \"state_dict\": STATE_PATH,\n            \"stats\": STATS_PATH,\n            \"code\": CODE_DIR,\n        },\n        pip_requirements=[\n            f\"mlflow=={mlflow.__version__}\",\n            f\"torch=={torch.__version__.split('+')[0]}\",\n            \"numpy\",\n        ],\n        input_example=sample_input,\n        signature=signature,\n        registered_model_name=model_torch_gpu,\n    )\n\nprint(f\"✓ logged model: {info.model_uri}\")\nprint(f\"✓ registered  : {model_torch_gpu}  version={info.registered_model_version}\")",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#step-6.-alias-부여-champion",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#step-6.-alias-부여-champion",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "Step 6. Alias 부여 (@champion)",
+    "text": "Step 6. Alias 부여 (@champion)\n\nfrom mlflow import MlflowClient\nclient = MlflowClient()\nclient.set_registered_model_alias(\n    name=model_torch_gpu, alias=\"champion\", version=info.registered_model_version,\n)\nprint(f\"✓ alias set: {model_torch_gpu}@champion → v{info.registered_model_version}\")",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#step-7.-로드-검증-endpoint-띄우기-전-pyfunc-동작-확인",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#step-7.-로드-검증-endpoint-띄우기-전-pyfunc-동작-확인",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "Step 7. 로드 검증 — endpoint 띄우기 전 PyFunc 동작 확인",
+    "text": "Step 7. 로드 검증 — endpoint 띄우기 전 PyFunc 동작 확인\nendpoint 가 5~10분 걸리므로 먼저 로컬에서 모델을 다시 로드해 PyFunc 가 동작하는지 확인합니다. 동일 로직이 endpoint container 안에서 일어납니다.\n\nloaded = mlflow.pyfunc.load_model(f\"models:/{model_torch_gpu}@champion\")\nprobs = loaded.predict(sample_input)\nprint(\"sample probs (churn=1):\", probs)",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#step-8.-gpu-serving-endpoint-생성",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#step-8.-gpu-serving-endpoint-생성",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "Step 8. GPU Serving endpoint 생성",
+    "text": "Step 8. GPU Serving endpoint 생성\n\n\n\n\n\n\n\n옵션\n값\n\n\n\n\nworkload_type\nGPU_SMALL (T4 1장) — GPU_MEDIUM, GPU_LARGE 도 선택 가능\n\n\nworkload_size\nSmall (1 replica)\n\n\nscale_to_zero_enabled\nTrue — idle 시 $0\n\n\nentity_version\n위에서 등록한 버전\n\n\n\n첫 생성은 image build + GPU node provision 으로 5~15분 걸립니다.\n\nfrom databricks.sdk import WorkspaceClient\nfrom databricks.sdk.service.serving import (\n    EndpointCoreConfigInput,\n    ServedEntityInput,\n)\n\nw = WorkspaceClient()\n\nserved = ServedEntityInput(\n    entity_name=model_torch_gpu,\n    entity_version=info.registered_model_version,\n    workload_type=\"GPU_SMALL\",\n    workload_size=\"Small\",\n    scale_to_zero_enabled=True,\n)\nconfig = EndpointCoreConfigInput(served_entities=[served])\n\ntry:\n    endpoint = w.serving_endpoints.create_and_wait(\n        name=endpoint_torch_gpu, config=config, timeout=__import__(\"datetime\").timedelta(minutes=30),\n    )\n    print(f\"✓ endpoint ready: {endpoint.name} (state={endpoint.state.ready})\")\nexcept Exception as e:\n    # 이미 존재하면 update 로 전환\n    print(f\"create failed ({e}); attempting update_config_and_wait\")\n    endpoint = w.serving_endpoints.update_config_and_wait(\n        name=endpoint_torch_gpu, served_entities=[served],\n        timeout=__import__(\"datetime\").timedelta(minutes=30),\n    )\n    print(f\"✓ endpoint updated: {endpoint.name}\")",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#step-9.-endpoint-호출",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#step-9.-endpoint-호출",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "Step 9. Endpoint 호출",
+    "text": "Step 9. Endpoint 호출\ndataframe_records 포맷으로 raw feature 를 그대로 보냅니다. 표준화는 endpoint 안의 PyFunc 가 책임집니다.\n\nrecords = pdf[FEATURES].head(5).to_dict(orient=\"records\")\nprint(\"input:\")\nfor r in records:\n    print(\" \", r)\n\nresp = w.serving_endpoints.query(\n    name=endpoint_torch_gpu,\n    dataframe_records=records,\n)\nprint(\"\\noutput (churn=1 probability):\")\nprint(resp.predictions)",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/01-train-and-serve.html#다음-단계",
+    "href": "04-gpu-torch-serving/01-train-and-serve.html#다음-단계",
+    "title": "01 · GPU PyTorch — Train · Log · Serve",
+    "section": "➡️ 다음 단계",
+    "text": "➡️ 다음 단계\n\nGPU endpoint 의 cold start / scale-to-zero 동작을 보고 싶으면 5분 정도 호출하지 않은 뒤 다시 query 해 보세요. 첫 호출만 latency 가 길고 (~30초) 이후는 ms 단위.\n다른 호출 방식(REST, Spark UDF, AI Gateway) 비교는 ../03-model-serving/01-model-serving.ipynb 의 Step 6 이후를 참고하세요. CPU endpoint 와 호출 인터페이스는 동일합니다.\n핸즈온 종료 시 ../03-model-serving/99-cleanup.ipynb 를 실행해 endpoint 를 정리합니다. 99-cleanup 은 endpoint_torch_gpu 도 함께 삭제합니다.",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving",
+      "01 · GPU PyTorch — Train · Log · Serve"
+    ]
+  },
+  {
     "objectID": "03-model-serving/99-cleanup.html",
     "href": "03-model-serving/99-cleanup.html",
     "title": "99 · Cleanup",
@@ -1408,7 +1564,7 @@
     "href": "03-model-serving/99-cleanup.html#테이블-삭제",
     "title": "99 · Cleanup",
     "section": "3. 테이블 삭제",
-    "text": "3. 테이블 삭제\n\ntables = [\n    f\"{catalog}.{schema}.customers\",\n    f\"{catalog}.{schema}.churn_scores_batch\",\n]\nfor t in tables:\n    spark.sql(f\"DROP TABLE IF EXISTS {t}\")\n    print(f\"  ✓ dropped {t}\")\n\n# Inference table들 — pattern 매칭\ninf_tables = (\n    spark.sql(f\"SHOW TABLES IN {catalog}.{schema}\")\n         .filter(\"tableName LIKE '%_inference_payload' OR tableName LIKE '%_inference_request_logs'\")\n         .collect()\n)\nfor row in inf_tables:\n    full = f\"{catalog}.{schema}.{row['tableName']}\"\n    spark.sql(f\"DROP TABLE IF EXISTS {full}\")\n    print(f\"  ✓ dropped inference table {full}\")",
+    "text": "3. 테이블 삭제\n\ntables = [\n    f\"{catalog}.{schema}.customers\",\n]\nfor t in tables:\n    spark.sql(f\"DROP TABLE IF EXISTS {t}\")\n    print(f\"  ✓ dropped {t}\")\n\n# Inference table들 — pattern 매칭\ninf_tables = (\n    spark.sql(f\"SHOW TABLES IN {catalog}.{schema}\")\n         .filter(\"tableName LIKE '%_inference_payload' OR tableName LIKE '%_inference_request_logs'\")\n         .collect()\n)\nfor row in inf_tables:\n    full = f\"{catalog}.{schema}.{row['tableName']}\"\n    spark.sql(f\"DROP TABLE IF EXISTS {full}\")\n    print(f\"  ✓ dropped inference table {full}\")",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -1444,7 +1600,7 @@
     "href": "03-model-serving/01-model-serving.html",
     "title": "06 · Model Serving",
     "section": "",
-    "text": "Endpoint 생성 — Databricks SDK + REST\n호출 4가지 방법 — mlflow.deployments, WorkspaceClient.serving_endpoints.query(), requests, curl\nAI Gateway Inference Tables — 요청/응답 자동 로깅 (legacy auto_capture_config 대체)\nBlue/Green canary — traffic_config 로 점진적 롤아웃\nBatch scoring 가이드 — Spark UDF 가 정답\n\n\n%pip install -q \"databricks-sdk&gt;=0.30.0\" \"mlflow&gt;=2.20.0\"\n%restart_python\n\n\n%run ./config\n\n\nimport mlflow\nmlflow.set_registry_uri(\"databricks-uc\")",
+    "text": "Endpoint 생성 — Databricks SDK + REST\n호출 4가지 방법 — mlflow.deployments, WorkspaceClient.serving_endpoints.query(), requests, curl\nAI Gateway Inference Tables — 요청/응답 자동 로깅 (legacy auto_capture_config 대체)\nBlue/Green canary — traffic_config 로 점진적 롤아웃\n\n\n%pip install -q \"databricks-sdk&gt;=0.30.0\" \"mlflow&gt;=2.20.0\"\n%restart_python\n\n\n%run ./config\n\n\nimport mlflow\nmlflow.set_registry_uri(\"databricks-uc\")",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -1456,7 +1612,7 @@
     "href": "03-model-serving/01-model-serving.html#이-노트북에서",
     "title": "06 · Model Serving",
     "section": "",
-    "text": "Endpoint 생성 — Databricks SDK + REST\n호출 4가지 방법 — mlflow.deployments, WorkspaceClient.serving_endpoints.query(), requests, curl\nAI Gateway Inference Tables — 요청/응답 자동 로깅 (legacy auto_capture_config 대체)\nBlue/Green canary — traffic_config 로 점진적 롤아웃\nBatch scoring 가이드 — Spark UDF 가 정답\n\n\n%pip install -q \"databricks-sdk&gt;=0.30.0\" \"mlflow&gt;=2.20.0\"\n%restart_python\n\n\n%run ./config\n\n\nimport mlflow\nmlflow.set_registry_uri(\"databricks-uc\")",
+    "text": "Endpoint 생성 — Databricks SDK + REST\n호출 4가지 방법 — mlflow.deployments, WorkspaceClient.serving_endpoints.query(), requests, curl\nAI Gateway Inference Tables — 요청/응답 자동 로깅 (legacy auto_capture_config 대체)\nBlue/Green canary — traffic_config 로 점진적 롤아웃\n\n\n%pip install -q \"databricks-sdk&gt;=0.30.0\" \"mlflow&gt;=2.20.0\"\n%restart_python\n\n\n%run ./config\n\n\nimport mlflow\nmlflow.set_registry_uri(\"databricks-uc\")",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -1480,7 +1636,7 @@
     "href": "03-model-serving/01-model-serving.html#step-2.-endpoint-생성-databricks-sdk",
     "title": "06 · Model Serving",
     "section": "Step 2. Endpoint 생성 — Databricks SDK",
-    "text": "Step 2. Endpoint 생성 — Databricks SDK\n\n주요 파라미터\n\n\n\n\n\n\n\n파라미터\n의미\n\n\n\n\nworkload_size\nSmall (0-4 concurrency), Medium (8-16), Large (16-64)\n\n\nworkload_type\nCPU (default), CPU_MEDIUM, GPU_SMALL (T4), GPU_LARGE (A10G)\n\n\nscale_to_zero_enabled\nidle 시 $0, cold start trade-off\n\n\nenvironment_vars\n{secrets/scope/key} 형식으로 secret 참조 가능\n\n\nai_gateway\ninference table / rate limit / usage tracking — 2026 권장\n\n\n\n\nfrom databricks.sdk import WorkspaceClient\nfrom databricks.sdk.service.serving import (\n    EndpointCoreConfigInput, ServedEntityInput, TrafficConfig, Route,\n    AiGatewayConfig, AiGatewayInferenceTableConfig, AiGatewayRateLimit,\n)\n\nw = WorkspaceClient()\n\n# 첫 served entity 이름 (logical alias, traffic_config 에서 참조)\nserved_name_v1 = f\"wheel-v{latest.version}\"\n\nendpoint = w.serving_endpoints.create_and_wait(\n    name=endpoint_wheel,\n    config=EndpointCoreConfigInput(\n        served_entities=[\n            ServedEntityInput(\n                name=served_name_v1,\n                entity_name=model_wheel,\n                entity_version=str(latest.version),\n                workload_size=\"Small\",\n                workload_type=\"CPU\",\n                scale_to_zero_enabled=True,   # 데모 / 개발: True. 프로덕션: False\n                environment_vars={\n                    \"LOG_LEVEL\": \"INFO\",\n                    # \"AZURE_OPENAI_KEY\": \"{{secrets/samsung_scope/aoai_key}}\",\n                },\n            )\n        ],\n        traffic_config=TrafficConfig(\n            routes=[Route(served_model_name=served_name_v1, traffic_percentage=100)],\n        ),\n    ),\n    ai_gateway=AiGatewayConfig(\n        inference_table_config=AiGatewayInferenceTableConfig(\n            enabled=True,\n            catalog_name=catalog,\n            schema_name=schema,\n            table_name_prefix=f\"{endpoint_wheel.replace('-', '_')}_inference\",\n        ),\n        rate_limits=[\n            AiGatewayRateLimit(calls=300, key=\"endpoint\", renewal_period=\"minute\"),\n        ],\n    ),\n    tags=[{\"key\": \"demo\", \"value\": \"samsung-hands-on\"}],\n)\n\nprint(f\"✓ endpoint {endpoint.name} state={endpoint.state.ready}\")\nprint(f\"   URL: https://{w.config.host}/serving-endpoints/{endpoint.name}/invocations\")",
+    "text": "Step 2. Endpoint 생성 — Databricks SDK\n\n주요 파라미터\n\n\n\n\n\n\n\n파라미터\n의미\n\n\n\n\nworkload_size\nSmall (0-4 concurrency), Medium (8-16), Large (16-64)\n\n\nworkload_type\nCPU (default), CPU_MEDIUM, GPU_SMALL (T4), GPU_LARGE (A10G)\n\n\nscale_to_zero_enabled\nidle 시 $0, cold start trade-off\n\n\nenvironment_vars\n{secrets/scope/key} 형식으로 secret 참조 가능\n\n\nai_gateway\ninference table / rate limit / usage tracking — 2026 권장\n\n\n\n\nfrom databricks.sdk import WorkspaceClient\nfrom databricks.sdk.service.serving import (\n    EndpointCoreConfigInput, ServedEntityInput, TrafficConfig, Route,\n    AiGatewayConfig, AiGatewayInferenceTableConfig, AiGatewayRateLimit,\n    AiGatewayRateLimitKey, AiGatewayRateLimitRenewalPeriod, EndpointTag,\n)\n\nw = WorkspaceClient()\n\n# 첫 served entity 이름 (logical alias, traffic_config 에서 참조)\nserved_name_v1 = f\"wheel-v{latest.version}\"\n\nendpoint = w.serving_endpoints.create_and_wait(\n    name=endpoint_wheel,\n    config=EndpointCoreConfigInput(\n        served_entities=[\n            ServedEntityInput(\n                name=served_name_v1,\n                entity_name=model_wheel,\n                entity_version=str(latest.version),\n                workload_size=\"Small\",\n                scale_to_zero_enabled=True,   # 데모 / 개발: True. 프로덕션: False\n                environment_vars={\n                    \"LOG_LEVEL\": \"INFO\",\n                    # \"AZURE_OPENAI_KEY\": \"{{secrets/demo_scope/aoai_key}}\",\n                },\n            )\n        ],\n        traffic_config=TrafficConfig(\n            routes=[Route(served_model_name=served_name_v1, traffic_percentage=100)],\n        ),\n    ),\n    ai_gateway=AiGatewayConfig(\n        inference_table_config=AiGatewayInferenceTableConfig(\n            enabled=True,\n            catalog_name=catalog,\n            schema_name=schema,\n            table_name_prefix=f\"{endpoint_wheel.replace('-', '_')}_inference\",\n        ),\n        rate_limits=[\n            AiGatewayRateLimit(\n                calls=300,\n                key=AiGatewayRateLimitKey.ENDPOINT,\n                renewal_period=AiGatewayRateLimitRenewalPeriod.MINUTE,\n            ),\n        ],\n    ),\n    tags=[EndpointTag(key=\"demo\", value=\"model-serving-cookbook\")],\n)\n\nprint(f\"✓ endpoint {endpoint.name} state={endpoint.state.ready}\")\nprint(f\"   URL: https://{w.config.host}/serving-endpoints/{endpoint.name}/invocations\")",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -1528,7 +1684,7 @@
     "href": "03-model-serving/01-model-serving.html#step-6.-bluegreen-canary-업데이트",
     "title": "06 · Model Serving",
     "section": "Step 6. Blue/Green Canary 업데이트",
-    "text": "Step 6. Blue/Green Canary 업데이트\n새 모델 버전을 등록했다고 가정 (여기선 동일 모델을 served entity 만 추가). update_config_and_wait 으로 두 entity 를 같이 띄우고 traffic 비율 조정.\n\n실 운영 시나리오: 새 model version (v2) 등록 → canary 10% → 메트릭 / drift 확인 → 100% → 구버전 제거\n\n\n# 데모: v_latest 를 두 번째 served entity로 함께 띄움 (실제로는 v_latest + 1 사용)\nserved_name_v2 = f\"wheel-v{latest.version}-canary\"\n\nw.serving_endpoints.update_config_and_wait(\n    name=endpoint_wheel,\n    served_entities=[\n        ServedEntityInput(\n            name=served_name_v1,\n            entity_name=model_wheel, entity_version=str(latest.version),\n            workload_size=\"Small\", workload_type=\"CPU\",\n            scale_to_zero_enabled=True,\n        ),\n        ServedEntityInput(\n            name=served_name_v2,\n            entity_name=model_wheel, entity_version=str(latest.version),\n            workload_size=\"Small\", workload_type=\"CPU\",\n            scale_to_zero_enabled=True,\n        ),\n    ],\n    traffic_config=TrafficConfig(routes=[\n        Route(served_model_name=served_name_v1, traffic_percentage=90),\n        Route(served_model_name=served_name_v2, traffic_percentage=10),\n    ]),\n)\nprint(\"✓ canary 10% routed to v2\")\n\n\n100% 컷오버\n\n# 충분한 검증 후\nw.serving_endpoints.update_config_and_wait(\n    name=endpoint_wheel,\n    served_entities=[\n        ServedEntityInput(\n            name=served_name_v2,\n            entity_name=model_wheel, entity_version=str(latest.version),\n            workload_size=\"Small\", workload_type=\"CPU\",\n            scale_to_zero_enabled=True,\n        ),\n    ],\n    traffic_config=TrafficConfig(routes=[\n        Route(served_model_name=served_name_v2, traffic_percentage=100),\n    ]),\n)\nprint(\"✓ 100% on v2, v1 removed\")",
+    "text": "Step 6. Blue/Green Canary 업데이트\n새 모델 버전을 등록했다고 가정 (여기선 동일 모델을 served entity 만 추가). update_config_and_wait 으로 두 entity 를 같이 띄우고 traffic 비율 조정.\n\n실 운영 시나리오: 새 model version (v2) 등록 → canary 10% → 메트릭 / drift 확인 → 100% → 구버전 제거\n\n\n# 데모: v_latest 를 두 번째 served entity로 함께 띄움 (실제로는 v_latest + 1 사용)\nserved_name_v2 = f\"wheel-v{latest.version}-canary\"\n\nw.serving_endpoints.update_config_and_wait(\n    name=endpoint_wheel,\n    served_entities=[\n        ServedEntityInput(\n            name=served_name_v1,\n            entity_name=model_wheel, entity_version=str(latest.version),\n            workload_size=\"Small\",\n            scale_to_zero_enabled=True,\n        ),\n        ServedEntityInput(\n            name=served_name_v2,\n            entity_name=model_wheel, entity_version=str(latest.version),\n            workload_size=\"Small\",\n            scale_to_zero_enabled=True,\n        ),\n    ],\n    traffic_config=TrafficConfig(routes=[\n        Route(served_model_name=served_name_v1, traffic_percentage=90),\n        Route(served_model_name=served_name_v2, traffic_percentage=10),\n    ]),\n)\nprint(\"✓ canary 10% routed to v2\")\n\n\n100% 컷오버\n\n# 충분한 검증 후\nw.serving_endpoints.update_config_and_wait(\n    name=endpoint_wheel,\n    served_entities=[\n        ServedEntityInput(\n            name=served_name_v2,\n            entity_name=model_wheel, entity_version=str(latest.version),\n            workload_size=\"Small\",\n            scale_to_zero_enabled=True,\n        ),\n    ],\n    traffic_config=TrafficConfig(routes=[\n        Route(served_model_name=served_name_v2, traffic_percentage=100),\n    ]),\n)\nprint(\"✓ 100% on v2, v1 removed\")",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -1536,23 +1692,11 @@
     ]
   },
   {
-    "objectID": "03-model-serving/01-model-serving.html#step-7.-batch-scoring-spark-udf-가-정답",
-    "href": "03-model-serving/01-model-serving.html#step-7.-batch-scoring-spark-udf-가-정답",
+    "objectID": "03-model-serving/01-model-serving.html#step-7.-선택-endpoint-삭제",
+    "href": "03-model-serving/01-model-serving.html#step-7.-선택-endpoint-삭제",
     "title": "06 · Model Serving",
-    "section": "Step 7. Batch Scoring — Spark UDF 가 정답",
-    "text": "Step 7. Batch Scoring — Spark UDF 가 정답\nModel Serving 엔드포인트: - payload 16 MB cap - request timeout 120s (sync) - 워크스페이스 기본 200 QPS\n수백만 row 점수화는 mlflow.pyfunc.spark_udf 로 클러스터에서 병렬 처리. Endpoint 호출 루프는 금지.\n\npredict_udf = mlflow.pyfunc.spark_udf(\n    spark,\n    model_uri=f\"models:/{model_wheel}/{latest.version}\",\n    env_manager=\"virtualenv\",\n    result_type=\"int\",\n)\n\nscored = (\n    spark.table(f\"{catalog}.{schema}.customers\")\n         .withColumn(\"prediction\",\n                     predict_udf(\"age\", \"tenure_months\", \"monthly_charges\",\n                                 \"total_charges\", \"support_tickets\"))\n)\ndisplay(scored.limit(10))\n\n# Delta 로 저장\n(\n    scored.select(\"customer_id\", \"prediction\")\n          .write.mode(\"overwrite\")\n          .saveAsTable(f\"{catalog}.{schema}.churn_scores_batch\")\n)\nprint(\"✓ batch scoring → churn_scores_batch\")",
-    "crumbs": [
-      "Home",
-      "03 · Model Serving",
-      "06 · Model Serving"
-    ]
-  },
-  {
-    "objectID": "03-model-serving/01-model-serving.html#step-8.-선택-endpoint-삭제",
-    "href": "03-model-serving/01-model-serving.html#step-8.-선택-endpoint-삭제",
-    "title": "06 · Model Serving",
-    "section": "Step 8. (선택) Endpoint 삭제",
-    "text": "Step 8. (선택) Endpoint 삭제\n데모 후 비용 절약. 99_cleanup 에서 일괄 정리 가능.\n\n# w.serving_endpoints.delete(name=endpoint_wheel)\n# print(f\"✓ deleted {endpoint_wheel}\")",
+    "section": "Step 7. (선택) Endpoint 삭제",
+    "text": "Step 7. (선택) Endpoint 삭제\n데모 후 비용 절약. 99_cleanup 에서 일괄 정리 가능.\n\n# w.serving_endpoints.delete(name=endpoint_wheel)\n# print(f\"✓ deleted {endpoint_wheel}\")",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -1564,7 +1708,7 @@
     "href": "03-model-serving/01-model-serving.html#정리",
     "title": "06 · Model Serving",
     "section": "정리",
-    "text": "정리\n\n\n\n작업\n도구\n\n\n\n\nEndpoint 생성/업데이트\nWorkspaceClient.serving_endpoints\n\n\n노트북 호출\nmlflow.deployments.get_deploy_client(\"databricks\")\n\n\n외부 호출\nREST POST → /serving-endpoints/&lt;name&gt;/invocations\n\n\n자동 로깅\nAI Gateway Inference Tables\n\n\nRate limit\nAiGatewayConfig.rate_limits (per-endpoint / per-user)\n\n\nBlue/Green\nupdate_config_and_wait + TrafficConfig\n\n\nBatch\nmlflow.pyfunc.spark_udf — endpoint 루프 절대 X\n\n\n\n→ 다음: 07_express_deployment — Serverless 노트북 + env_pack 으로 원클릭 서빙",
+    "text": "정리\n\n\n\n작업\n도구\n\n\n\n\nEndpoint 생성/업데이트\nWorkspaceClient.serving_endpoints\n\n\n노트북 호출\nmlflow.deployments.get_deploy_client(\"databricks\")\n\n\n외부 호출\nREST POST → /serving-endpoints/&lt;name&gt;/invocations\n\n\n자동 로깅\nAI Gateway Inference Tables\n\n\nRate limit\nAiGatewayConfig.rate_limits (per-endpoint / per-user)\n\n\nBlue/Green\nupdate_config_and_wait + TrafficConfig\n\n\n\n→ 다음: 07_express_deployment — Serverless 노트북 + env_pack 으로 원클릭 서빙",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -1600,7 +1744,7 @@
     "href": "02-code-packaging/02-uv-wheel.html#정석-패턴",
     "title": "05 · uv + Wheel",
     "section": "정석 패턴",
-    "text": "정석 패턴\nmlflow.pyfunc.log_model(\n    name=\"model\",\n    python_model=MyModel(),\n    code_paths=[\"dist/samsung_preproc-0.1.0-py3-none-any.whl\"],\n    extra_pip_requirements=[\"code/samsung_preproc-0.1.0-py3-none-any.whl\"],  # ← code/ 접두사 필수\n)\n\ncode_paths 가 wheel 을 &lt;model&gt;/code/ 로 복사\nextra_pip_requirements 의 code/&lt;wheel&gt; 은 unpacked 모델 root 기준 상대경로 — 서빙 빌더가 pip install",
+    "text": "정석 패턴\nmlflow.pyfunc.log_model(\n    name=\"model\",\n    python_model=MyModel(),\n    code_paths=[\"dist/churn_preproc-0.1.0-py3-none-any.whl\"],\n    extra_pip_requirements=[\"code/churn_preproc-0.1.0-py3-none-any.whl\"],  # ← code/ 접두사 필수\n)\n\ncode_paths 가 wheel 을 &lt;model&gt;/code/ 로 복사\nextra_pip_requirements 의 code/&lt;wheel&gt; 은 unpacked 모델 root 기준 상대경로 — 서빙 빌더가 pip install",
     "crumbs": [
       "Home",
       "02 · Code Packaging",
@@ -1624,7 +1768,7 @@
     "href": "02-code-packaging/02-uv-wheel.html#step-1.-uv-설치-패키지-빌드",
     "title": "05 · uv + Wheel",
     "section": "Step 1. uv 설치 + 패키지 빌드",
-    "text": "Step 1. uv 설치 + 패키지 빌드\nsrc/samsung_preproc/ 디렉토리에 이미 패키지 소스가 있습니다 (Repo / Workspace 동기화 시). 없다면 README 의 “Setup” 섹션을 따라 패키지를 먼저 생성하세요.\n\n%sh\n# uv 설치 (없는 경우만)\npip install -q \"uv&gt;=0.5.0\"\nuv --version\n\n\n패키지 디렉토리 확인\n\n%sh\n# 노트북이 있는 디렉토리의 samsung_preproc 패키지 경로 찾기\n# (Databricks Repos 사용 시 자동으로 sync 됨)\nPKG_DIR=$(find /Workspace -type d -name samsung_preproc -not -path '*/src/samsung_preproc/*' 2&gt;/dev/null | head -1)\nif [ -z \"$PKG_DIR\" ]; then\n  PKG_DIR=$(find /tmp -type d -name samsung_preproc -not -path '*/src/samsung_preproc/*' 2&gt;/dev/null | head -1)\nfi\necho \"PKG_DIR=$PKG_DIR\"\nls -la \"$PKG_DIR\" 2&gt;/dev/null || echo \"패키지 디렉토리 못 찾음 — README 의 Setup 따라 만드세요\"\n\n\n\nWheel 빌드\n디렉토리 찾았으면 거기서 uv build 실행. wheel 은 dist/ 에 생성됩니다.\n\nimport subprocess, os, glob\n\n# 패키지 경로 — 본인 환경에 맞게 수정\nPKG_DIR = os.path.dirname(os.path.abspath(\".\"))  # 노트북 위치 기준 상위\ncandidates = glob.glob(f\"{PKG_DIR}/**/samsung_preproc/pyproject.toml\", recursive=True)\nif not candidates:\n    candidates = glob.glob(\"/Workspace/**/samsung_preproc/pyproject.toml\", recursive=True)\n\nassert candidates, \"samsung_preproc/pyproject.toml 을 찾을 수 없습니다. README Setup 참고.\"\nPKG_DIR = os.path.dirname(candidates[0])\nprint(f\"PKG_DIR = {PKG_DIR}\")\n\n# 빌드\nresult = subprocess.run(\n    [\"uv\", \"build\", \"--out-dir\", \"/tmp/wheels\"],\n    cwd=PKG_DIR, capture_output=True, text=True,\n)\nprint(result.stdout)\nif result.returncode != 0:\n    print(\"STDERR:\", result.stderr)\n    raise RuntimeError(\"uv build 실패\")\n\nWHEEL = glob.glob(\"/tmp/wheels/samsung_preproc-*.whl\")[0]\nprint(f\"\\n✓ Built: {WHEEL}\")",
+    "text": "Step 1. uv 설치 + 패키지 빌드\nsrc/churn_preproc/ 디렉토리에 이미 패키지 소스가 있습니다 (Repo / Workspace 동기화 시). 없다면 README 의 “Setup” 섹션을 따라 패키지를 먼저 생성하세요.\n\n%sh\n# uv 설치 (없는 경우만)\npip install -q \"uv&gt;=0.5.0\"\nuv --version\n\n\nWheel 빌드\n디렉토리 찾았으면 거기서 uv build 실행. wheel 은 dist/ 에 생성됩니다.\n\nimport subprocess, os, glob\n\n# 노트북 위치 기준: 같은 디렉토리에 churn_preproc/ 패키지 소스가 함께 제공됨.\n# Databricks 노트북 컨텍스트에서 현재 노트북의 워크스페이스 경로를 가져옴.\nctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()\nnotebook_dir = \"/Workspace\" + os.path.dirname(ctx.notebookPath().get())\nPKG_DIR = f\"{notebook_dir}/churn_preproc\"\n\nassert os.path.exists(f\"{PKG_DIR}/pyproject.toml\"), (\n    f\"pyproject.toml not found at {PKG_DIR}. \"\n    f\"churn_preproc 패키지가 노트북과 같은 디렉토리에 sync 되어 있어야 합니다.\"\n)\nprint(f\"PKG_DIR = {PKG_DIR}\")\n\n# uv build → /tmp/wheels\nresult = subprocess.run(\n    [\"uv\", \"build\", \"--out-dir\", \"/tmp/wheels\"],\n    cwd=PKG_DIR, capture_output=True, text=True,\n)\nprint(result.stdout)\nif result.returncode != 0:\n    print(\"STDERR:\", result.stderr)\n    raise RuntimeError(\"uv build 실패\")\n\nWHEEL = glob.glob(\"/tmp/wheels/churn_preproc-*.whl\")[0]\nprint(f\"\\n✓ Built: {WHEEL}\")",
     "crumbs": [
       "Home",
       "02 · Code Packaging",
@@ -1636,7 +1780,7 @@
     "href": "02-code-packaging/02-uv-wheel.html#step-2.-빌드한-wheel-로컬-테스트",
     "title": "05 · uv + Wheel",
     "section": "Step 2. 빌드한 wheel 로컬 테스트",
-    "text": "Step 2. 빌드한 wheel 로컬 테스트\nlog_model 전에 wheel 이 설치되고 import 가 잘 되는지 검증.\n\n%pip install -q /tmp/wheels/samsung_preproc-0.1.0-py3-none-any.whl\n%restart_python\n\n\n%run ./config\n\n\nimport mlflow, os, pandas as pd, joblib, glob\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)\n\n# wheel 사용 확인\nfrom samsung_preproc import preprocess, __version__\nprint(f\"samsung_preproc=={__version__}\")",
+    "text": "Step 2. 빌드한 wheel 로컬 테스트\nlog_model 전에 wheel 이 설치되고 import 가 잘 되는지 검증.\n\n%pip install -q /tmp/wheels/churn_preproc-0.1.0-py3-none-any.whl\n%restart_python\n\n\n%run ./config\n\n\nimport mlflow, os, pandas as pd, joblib, glob, sklearn, numpy as np, cloudpickle\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)\n\n# wheel 사용 확인\nfrom churn_preproc import preprocess, __version__\nprint(f\"churn_preproc=={__version__}\")\n\n# %restart_python 이후 변수 손실 — wheel 경로 재정의\nWHEEL = glob.glob(\"/tmp/wheels/churn_preproc-*.whl\")[0]\nprint(f\"WHEEL = {WHEEL}\")",
     "crumbs": [
       "Home",
       "02 · Code Packaging",
@@ -1660,7 +1804,7 @@
     "href": "02-code-packaging/02-uv-wheel.html#step-4.-pythonmodel-wheel-에서-import",
     "title": "05 · uv + Wheel",
     "section": "Step 4. PythonModel — wheel 에서 import",
-    "text": "Step 4. PythonModel — wheel 에서 import\n\nclass ChurnWithWheel(mlflow.pyfunc.PythonModel):\n    def load_context(self, context):\n        import joblib\n        self.model = joblib.load(context.artifacts[\"model\"])\n\n    def predict(self, context, model_input: pd.DataFrame, params=None):\n        # ← 서빙 컨테이너 안에서 wheel 이 설치되어 있음\n        from samsung_preproc import preprocess\n        enriched = preprocess(model_input)\n        # 학습 시 사용한 컬럼 순서 유지\n        cols = [\"age\", \"tenure_months\", \"monthly_charges\", \"total_charges\",\n                \"support_tickets\", \"ltv\", \"risk_bucket\", \"tenure_band\"]\n        return pd.DataFrame({\"prediction\": self.model.predict(enriched[cols])})",
+    "text": "Step 4. PythonModel — wheel 에서 import\n\nclass ChurnWithWheel(mlflow.pyfunc.PythonModel):\n    def load_context(self, context):\n        import joblib\n        self.model = joblib.load(context.artifacts[\"model\"])\n\n    def predict(self, context, model_input: pd.DataFrame, params=None):\n        # ← 서빙 컨테이너 안에서 wheel 이 설치되어 있음\n        from churn_preproc import preprocess\n        enriched = preprocess(model_input)\n        # 학습 시 사용한 컬럼 순서 유지\n        cols = [\"age\", \"tenure_months\", \"monthly_charges\", \"total_charges\",\n                \"support_tickets\", \"ltv\", \"risk_bucket\", \"tenure_band\"]\n        return pd.DataFrame({\"prediction\": self.model.predict(enriched[cols])})",
     "crumbs": [
       "Home",
       "02 · Code Packaging",
@@ -1672,7 +1816,7 @@
     "href": "02-code-packaging/02-uv-wheel.html#step-5.-모델을-volume-에-저장-log_model-정석-패턴",
     "title": "05 · uv + Wheel",
     "section": "Step 5. 모델을 Volume 에 저장 + log_model (정석 패턴)",
-    "text": "Step 5. 모델을 Volume 에 저장 + log_model (정석 패턴)\n\nartifacts_dir = f\"{volume_path}/05_wheel\"\nos.makedirs(artifacts_dir, exist_ok=True)\nmodel_path = f\"{artifacts_dir}/pipeline.joblib\"\njoblib.dump(pipe, model_path)\n\n# input_example 은 raw input — preprocess 가 컬럼 추가\nraw_example = pdf[[\"age\", \"tenure_months\", \"monthly_charges\", \"total_charges\", \"support_tickets\"]].iloc[:5]\n\nfrom mlflow.models import infer_signature\nsig = infer_signature(raw_example, pd.DataFrame({\"prediction\": [0]*5}))\n\nwheel_basename = os.path.basename(WHEEL)\nprint(f\"wheel = {wheel_basename}\")\n\nwith mlflow.start_run(run_name=\"wheel_packaging\"):\n    info = mlflow.pyfunc.log_model(\n        name=\"model\",\n        python_model=ChurnWithWheel(),\n        artifacts={\"model\": model_path},\n        code_paths=[WHEEL],                                  # ← wheel 을 code/ 로 복사\n        extra_pip_requirements=[f\"code/{wheel_basename}\"],   # ← 서빙 시 code/ 안의 wheel 을 pip install\n        signature=sig,\n        input_example=raw_example,\n        registered_model_name=model_wheel,\n        pip_requirements=[\n            \"mlflow-skinny==2.20.0\",\n            \"cloudpickle==3.0.0\",\n            \"scikit-learn==1.4.2\",\n            \"pandas==2.2.2\",\n            \"numpy==1.26.4\",\n            \"joblib==1.4.0\",\n            f\"code/{wheel_basename}\",                        # ← lockdown 시에도 wheel 참조\n        ],\n    )\n\nprint(f\"✓ {model_wheel} v{info.registered_model_version}\")",
+    "text": "Step 5. 모델을 Volume 에 저장 + log_model (정석 패턴)\n\nartifacts_dir = f\"{volume_path}/05_wheel\"\nos.makedirs(artifacts_dir, exist_ok=True)\nmodel_path = f\"{artifacts_dir}/pipeline.joblib\"\njoblib.dump(pipe, model_path)\n\n# input_example 은 raw input — preprocess 가 컬럼 추가\nraw_example = pdf[[\"age\", \"tenure_months\", \"monthly_charges\", \"total_charges\", \"support_tickets\"]].iloc[:5]\n\nfrom mlflow.models import infer_signature\nsig = infer_signature(raw_example, pd.DataFrame({\"prediction\": [0]*5}))\n\nwheel_basename = os.path.basename(WHEEL)\nprint(f\"wheel = {wheel_basename}\")\n\nwith mlflow.start_run(run_name=\"wheel_packaging\"):\n    info = mlflow.pyfunc.log_model(\n        name=\"model\",\n        python_model=ChurnWithWheel(),\n        artifacts={\"model\": model_path},\n        code_paths=[WHEEL],                                  # ← wheel 을 code/ 로 복사\n        signature=sig,\n        input_example=raw_example,\n        registered_model_name=model_wheel,\n        pip_requirements=[                                   # ← lockdown: 자동 추론 churn-preproc==0.1.0 (PyPI 미공개) 제외\n            f\"mlflow=={mlflow.__version__}\",                 #   학습 시점 환경 버전을 그대로 pin → endpoint unpickle 호환\n            f\"cloudpickle=={cloudpickle.__version__}\",\n            f\"scikit-learn=={sklearn.__version__}\",\n            f\"pandas=={pd.__version__}\",\n            f\"numpy=={np.__version__}\",\n            f\"joblib=={joblib.__version__}\",\n            f\"code/{wheel_basename}\",                        # ← endpoint 환경에서 wheel 직접 pip install\n        ],\n    )\n\nprint(f\"✓ {model_wheel} v{info.registered_model_version}\")",
     "crumbs": [
       "Home",
       "02 · Code Packaging",
@@ -1720,7 +1864,7 @@
     "href": "02-code-packaging/02-uv-wheel.html#정리-code_paths-vs-wheel",
     "title": "05 · uv + Wheel",
     "section": "정리 — code_paths vs wheel",
-    "text": "정리 — code_paths vs wheel\n\n\n\n\n\n\n\n\n측면\ncode_paths=[\"mypkg/\"] (raw)\ncode_paths=[\"dist/...whl\"] (wheel)\n\n\n\n\n빌드 스텝\n없음\nuv build\n\n\n중첩 패키지\n평탄화로 깨짐\n정상 pip install\n\n\nrelative import\n자주 깨짐\n정상\n\n\ntransitive deps\n수동 listing\npyproject.toml 에서 자동\n\n\n버전 관리\n없음\nsemver in filename\n\n\n프로덕션\n비권장\n권장\n\n\n\n\n함정들\n\n버전 미증가 시 캐싱: wheel 은 스냅샷. 매 반복마다 0.1.0 → 0.1.1 로 bump 해야 pip cache 가 새 wheel 사용.\nPython ABI 태그: py3-none-any (pure Python) 면 어디서나 OK. C-extension 이 있으면 manylinux2014_x86_64 wheel 필요.\nDBR runtime 호환성: pyproject.toml 의 requires-python 을 DBR ML runtime 의 Python 버전과 맞추세요 (DBR ML 15.x = 3.11).\nUC Volume 사용 시: endpoint service principal 에 Volume READ grant 필요.\ncode_paths 디렉토리 + wheel 혼합 X: import shadowing 발생 — wheel 만 쓰세요.\n\n→ 다음: 06_model_serving — endpoint 생성, 호출, blue/green, batch",
+    "text": "정리 — code_paths vs wheel\n\n\n\n\n\n\n\n\n측면\ncode_paths=[\"mypkg/\"] (raw)\ncode_paths=[\"dist/...whl\"] (wheel)\n\n\n\n\n빌드 스텝\n없음\nuv build\n\n\n중첩 패키지\n평탄화로 깨짐\n정상 pip install\n\n\nrelative import\n자주 깨짐\n정상\n\n\ntransitive deps\n수동 listing\npyproject.toml 에서 자동\n\n\n버전 관리\n없음\nsemver in filename\n\n\n프로덕션\n비권장\n권장\n\n\n\n\n함정들\n\n버전 미증가 시 캐싱: wheel 은 스냅샷. 매 반복마다 0.1.0 → 0.1.1 로 bump 해야 pip cache 가 새 wheel 사용.\nPython ABI 태그: py3-none-any (pure Python) 면 어디서나 OK. C-extension 이 있으면 manylinux2014_x86_64 wheel 필요.\nDBR runtime 호환성: pyproject.toml 의 requires-python 을 DBR ML runtime 의 Python 버전과 맞추세요 (DBR ML 15.x = 3.11).\nUC Volume 사용 시: endpoint service principal 에 Volume READ grant 필요.\ncode_paths 디렉토리 + wheel 혼합 X: import shadowing 발생 — wheel 만 쓰세요.\n\n→ 다음: 06_model_serving — endpoint 생성, 호출, blue/green",
     "crumbs": [
       "Home",
       "02 · Code Packaging",
@@ -1732,7 +1876,7 @@
     "href": "02-code-packaging/README.html",
     "title": "02 · Custom Code Packaging",
     "section": "",
-    "text": "모델과 함께 배포할 사용자 정의 Python 코드를 어떻게 묶을지 두 가지 패턴으로 다룹니다. code_paths 의 한계와 uv + wheel 베스트프랙티스를 비교합니다.\n\n\n\n번호 순서대로 실행하는 흐름입니다. 00-setup 은 ../01-mlflow-logging/00-setup.ipynb 을 먼저 실행했다고 가정합니다 (UC 리소스 공유).\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-code-paths.ipynb\ncode_paths 패턴, 평탄화 동작, nested package 제약, infer_code_paths\n01 챕터 00-setup\n\n\n02\n02-uv-wheel.ipynb\nuv build → wheel → code_paths + extra_pip_requirements (production 권장)\n01, samsung_preproc/\n\n\n\nsamsung_preproc/ 은 02 노트북에서 wheel 빌드 대상으로 쓰는 샘플 패키지입니다. pyproject.toml + src/samsung_preproc/ (src-layout).\n\n\n\n두 노트북이 같은 문제(전처리 코드를 모델에 번들링)를 어떻게 다르게 푸는지 비교합니다.\n\n\n\n\n\n\n\n\n측면\n01-code-paths\n02-uv-wheel\n\n\n\n\n코드 전달 수단\n.py 파일 / 디렉토리\n.whl wheel\n\n\nMLflow 인자\ncode_paths=[...]\ncode_paths=[\"dist/*.whl\"] + extra_pip_requirements=[\"code/*.whl\"]\n\n\n모델 안 위치\ncode/&lt;flat&gt; (평탄화)\ncode/&lt;wheel&gt;\n\n\nImport 방식\nimport &lt;flat_module&gt;\npip install 후 import &lt;pkg&gt;\n\n\nNested package\n❌ 평탄화로 깨짐\n✅ wheel 이 그대로 설치됨\n\n\nProduction 권장\n△ 단일 파일이면 OK\n✅ 권장\n\n\nDependency 자동 해결\n❌ 본인이 직접 명시\n✅ wheel 의 pyproject.toml 이 해결\n\n\n\n자세한 동작 메커니즘은 concepts-mlflow-logging.md §code_paths 와 concepts-uv-wheel.md 를 참고하세요.\n\n\n\n01 챕터와 동일. CPU 노드 + DBR 15.x ML 이상이면 충분합니다. 추가 요구사항은 없습니다.\nuv 는 02 노트북이 pip install uv 로 설치합니다. wheel 빌드는 /tmp/wheels/ 에서 일어나므로 cluster restart 시 사라집니다.\n\n\n\n각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n등록 모델\n추가 산출물\n\n\n\n\n01-code-paths\nmain.model_serving_cookbook.churn_codepaths\n/tmp/work/preprocessing.py, /tmp/work/featurizers/ (예제용)\n\n\n02-uv-wheel\nmain.model_serving_cookbook.churn_wheel@champion\n/tmp/wheels/samsung_preproc-0.1.0-py3-none-any.whl\n\n\n\n학습 시간은 노트북당 1~2분.\n\n\n\n본 챕터에서 의도적으로 비워 둔 부분입니다.\n\nEndpoint 배포 비교는 03 챕터에서. 02 노트북에서 만든 wheel 모델을 endpoint 로 띄우는 흐름은 ../03-model-serving/01-model-serving.ipynb 에서 다룹니다.\nPrivate PyPI: 본 챕터는 wheel 파일을 직접 번들링하는 패턴만 다룹니다. extra_pip_requirements=[\"--index-url ...\"] 로 private index 를 쓰는 패턴은 concepts-mlflow-logging.md 의 메모만 참고하세요.\n\n\n\n\n만든 모델을 endpoint 로 띄우고 호출하는 패턴은 03-model-serving/ 에서 이어집니다.",
+    "text": "모델과 함께 배포할 사용자 정의 Python 코드를 어떻게 묶을지 두 가지 패턴으로 다룹니다. code_paths 의 한계와 uv + wheel 베스트프랙티스를 비교합니다.\n\n\n\n번호 순서대로 실행하는 흐름입니다. 00-setup 은 ../01-mlflow-logging/00-setup.ipynb 을 먼저 실행했다고 가정합니다 (UC 리소스 공유).\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-code-paths.ipynb\ncode_paths 패턴, 평탄화 동작, nested package 제약, infer_code_paths\n01 챕터 00-setup\n\n\n02\n02-uv-wheel.ipynb\nuv build → wheel → code_paths + extra_pip_requirements (production 권장)\n01, churn_preproc/\n\n\n\nchurn_preproc/ 은 02 노트북에서 wheel 빌드 대상으로 쓰는 샘플 패키지입니다. pyproject.toml + src/churn_preproc/ (src-layout).\n\n\n\n두 노트북이 같은 문제(전처리 코드를 모델에 번들링)를 어떻게 다르게 푸는지 비교합니다.\n\n\n\n\n\n\n\n\n측면\n01-code-paths\n02-uv-wheel\n\n\n\n\n코드 전달 수단\n.py 파일 / 디렉토리\n.whl wheel\n\n\nMLflow 인자\ncode_paths=[...]\ncode_paths=[\"dist/*.whl\"] + extra_pip_requirements=[\"code/*.whl\"]\n\n\n모델 안 위치\ncode/&lt;flat&gt; (평탄화)\ncode/&lt;wheel&gt;\n\n\nImport 방식\nimport &lt;flat_module&gt;\npip install 후 import &lt;pkg&gt;\n\n\nNested package\n❌ 평탄화로 깨짐\n✅ wheel 이 그대로 설치됨\n\n\nProduction 권장\n△ 단일 파일이면 OK\n✅ 권장\n\n\nDependency 자동 해결\n❌ 본인이 직접 명시\n✅ wheel 의 pyproject.toml 이 해결\n\n\n\n자세한 동작 메커니즘은 concepts-mlflow-logging.md §code_paths 와 concepts-uv-wheel.md 를 참고하세요.\n\n\n\n01 챕터와 동일. CPU 노드 + DBR 15.x ML 이상이면 충분합니다. 추가 요구사항은 없습니다.\nuv 는 02 노트북이 pip install uv 로 설치합니다. wheel 빌드는 /tmp/wheels/ 에서 일어나므로 cluster restart 시 사라집니다.\n\n\n\n각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n등록 모델\n추가 산출물\n\n\n\n\n01-code-paths\nmain.model_serving_cookbook.churn_codepaths\n/tmp/work/preprocessing.py, /tmp/work/featurizers/ (예제용)\n\n\n02-uv-wheel\nmain.model_serving_cookbook.churn_wheel@champion\n/tmp/wheels/churn_preproc-0.1.0-py3-none-any.whl\n\n\n\n학습 시간은 노트북당 1~2분.\n\n\n\n본 챕터에서 의도적으로 비워 둔 부분입니다.\n\nEndpoint 배포 비교는 03 챕터에서. 02 노트북에서 만든 wheel 모델을 endpoint 로 띄우는 흐름은 ../03-model-serving/01-model-serving.ipynb 에서 다룹니다.\nPrivate PyPI: 본 챕터는 wheel 파일을 직접 번들링하는 패턴만 다룹니다. extra_pip_requirements=[\"--index-url ...\"] 로 private index 를 쓰는 패턴은 concepts-mlflow-logging.md 의 메모만 참고하세요.\n\n\n\n\n만든 모델을 endpoint 로 띄우고 호출하는 패턴은 03-model-serving/ 에서 이어집니다.",
     "crumbs": [
       "Home",
       "02 · Code Packaging"
@@ -1743,7 +1887,7 @@
     "href": "02-code-packaging/README.html#노트북-흐름",
     "title": "02 · Custom Code Packaging",
     "section": "",
-    "text": "번호 순서대로 실행하는 흐름입니다. 00-setup 은 ../01-mlflow-logging/00-setup.ipynb 을 먼저 실행했다고 가정합니다 (UC 리소스 공유).\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-code-paths.ipynb\ncode_paths 패턴, 평탄화 동작, nested package 제약, infer_code_paths\n01 챕터 00-setup\n\n\n02\n02-uv-wheel.ipynb\nuv build → wheel → code_paths + extra_pip_requirements (production 권장)\n01, samsung_preproc/\n\n\n\nsamsung_preproc/ 은 02 노트북에서 wheel 빌드 대상으로 쓰는 샘플 패키지입니다. pyproject.toml + src/samsung_preproc/ (src-layout).",
+    "text": "번호 순서대로 실행하는 흐름입니다. 00-setup 은 ../01-mlflow-logging/00-setup.ipynb 을 먼저 실행했다고 가정합니다 (UC 리소스 공유).\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-code-paths.ipynb\ncode_paths 패턴, 평탄화 동작, nested package 제약, infer_code_paths\n01 챕터 00-setup\n\n\n02\n02-uv-wheel.ipynb\nuv build → wheel → code_paths + extra_pip_requirements (production 권장)\n01, churn_preproc/\n\n\n\nchurn_preproc/ 은 02 노트북에서 wheel 빌드 대상으로 쓰는 샘플 패키지입니다. pyproject.toml + src/churn_preproc/ (src-layout).",
     "crumbs": [
       "Home",
       "02 · Code Packaging"
@@ -1776,7 +1920,7 @@
     "href": "02-code-packaging/README.html#기대-결과",
     "title": "02 · Custom Code Packaging",
     "section": "",
-    "text": "각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n등록 모델\n추가 산출물\n\n\n\n\n01-code-paths\nmain.model_serving_cookbook.churn_codepaths\n/tmp/work/preprocessing.py, /tmp/work/featurizers/ (예제용)\n\n\n02-uv-wheel\nmain.model_serving_cookbook.churn_wheel@champion\n/tmp/wheels/samsung_preproc-0.1.0-py3-none-any.whl\n\n\n\n학습 시간은 노트북당 1~2분.",
+    "text": "각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n등록 모델\n추가 산출물\n\n\n\n\n01-code-paths\nmain.model_serving_cookbook.churn_codepaths\n/tmp/work/preprocessing.py, /tmp/work/featurizers/ (예제용)\n\n\n02-uv-wheel\nmain.model_serving_cookbook.churn_wheel@champion\n/tmp/wheels/churn_preproc-0.1.0-py3-none-any.whl\n\n\n\n학습 시간은 노트북당 1~2분.",
     "crumbs": [
       "Home",
       "02 · Code Packaging"
@@ -1809,7 +1953,7 @@
     "href": "01-mlflow-logging/02-pyfunc-custom.html",
     "title": "02 · PyFunc Custom Model",
     "section": "",
-    "text": "Flavor logging (mlflow.sklearn.log_model) 은 단일 native 객체 직렬화에 최적화. 다음 케이스엔 PyFunc 필요:\n\n여러 모델 / preprocessing 을 하나의 inference unit 으로 묶을 때\nflavor 가 없는 라이브러리 (ex. surprise, 자체 구현 모델)\npost-processing 이 모델 출력과 함께 패키지되어야 할 때\n외부 artifact (lookup table, embedding, config 등) 와 함께 배포할 때",
+    "text": "PyFunc load_model 시퀀스: load_context → predict\n출처: MLflow PyFunc 공식 문서.",
     "crumbs": [
       "Home",
       "01 · MLflow Logging",
@@ -1820,8 +1964,8 @@
     "objectID": "01-mlflow-logging/02-pyfunc-custom.html#왜-pyfunc-가-필요한가",
     "href": "01-mlflow-logging/02-pyfunc-custom.html#왜-pyfunc-가-필요한가",
     "title": "02 · PyFunc Custom Model",
-    "section": "",
-    "text": "Flavor logging (mlflow.sklearn.log_model) 은 단일 native 객체 직렬화에 최적화. 다음 케이스엔 PyFunc 필요:\n\n여러 모델 / preprocessing 을 하나의 inference unit 으로 묶을 때\nflavor 가 없는 라이브러리 (ex. surprise, 자체 구현 모델)\npost-processing 이 모델 출력과 함께 패키지되어야 할 때\n외부 artifact (lookup table, embedding, config 등) 와 함께 배포할 때",
+    "section": "왜 PyFunc 가 필요한가",
+    "text": "왜 PyFunc 가 필요한가\nFlavor logging (mlflow.sklearn.log_model) 은 단일 native 객체 직렬화에 최적화. 다음 케이스엔 PyFunc 필요:\n\n여러 모델 / preprocessing 을 하나의 inference unit 으로 묶을 때\nflavor 가 없는 라이브러리 (ex. surprise, 자체 구현 모델)\npost-processing 이 모델 출력과 함께 패키지되어야 할 때\n외부 artifact (lookup table, embedding, config 등) 와 함께 배포할 때",
     "crumbs": [
       "Home",
       "01 · MLflow Logging",
@@ -2621,7 +2765,7 @@
     "href": "01-mlflow-logging/README.html",
     "title": "01 · MLflow Model Logging",
     "section": "",
-    "text": "MLflow 모델을 flavor / PyFunc 두 방식으로 logging 하고, dependency 를 캡처하는 패턴을 학습합니다. Model Serving 으로 가기 전의 기초 챕터입니다.\n\n\n\n번호 순서대로 실행하는 흐름입니다. 00-setup 은 쿡북 전체에서 한 번만 실행하면 됩니다 (다른 챕터도 같은 UC 리소스를 공유).\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n00\n00-setup.ipynb\nUC catalog/schema/volume + synthetic customer churn 데이터 생성 + MLflow registry 설정\n—\n\n\n01\n01-flavor-logging.ipynb\nsklearn flavor log_model, signature 추론, UC 등록, alias (@champion)\n00\n\n\n02\n02-pyfunc-custom.ipynb\nPythonModel 서브클래스, load_context, artifacts, 멀티모델 wrapper\n00\n\n\n03\n03-dependencies.ipynb\npip_requirements vs extra_pip_requirements vs conda_env, lock 전략\n00\n\n\n\nconfig.py 는 catalog / schema / 모델·endpoint 이름을 모두 정의합니다. 모든 노트북이 %run ./config 으로 import 합니다.\n\n\n\n각 노트북이 logging 의 어떤 축을 다루는지 한 줄로 보여 줍니다.\n\n\n\n\n\n\n\n\n\n노트북\n직렬화\nUC 등록\nDependency 캡처\n\n\n\n\n01-flavor-logging\nsklearn flavor (mlflow.sklearn.log_model)\nregistered_model_name=...\n자동 추론 (signature + input_example)\n\n\n02-pyfunc-custom\nPyFunc (mlflow.pyfunc.log_model + PythonModel)\n동일\nartifacts 로 추가 파일 번들\n\n\n03-dependencies\n두 방식 모두\n—\npip_requirements REPLACE / extra_pip_requirements APPEND / conda_env\n\n\n\n\n\n\nCPU 노드로 충분합니다. 노트북은 5K row sklearn 모델만 학습합니다.\n\n\n\n항목\n값\n\n\n\n\nCluster mode\nSingle user\n\n\nDatabricks Runtime\nDBR 15.x ML 이상 (CPU)\n\n\nDriver type\ni3.xlarge 등 일반 CPU\n\n\nWorkers\n0 (single-node) 또는 소수 — Spark 사용 거의 없음\n\n\n\n00-setup 첫 셀이 %pip install -q \"mlflow&gt;=2.20.0\" \"databricks-sdk&gt;=0.30.0\" 으로 의존성을 명시합니다.\n\n\n\n각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n등록 모델\nExperiment runs\n\n\n\n\n00-setup\n—\n/Users/&lt;you&gt;/model_serving_cookbook experiment 생성\n\n\n01-flavor-logging\nmain.model_serving_cookbook.churn_basic@champion\n1 run\n\n\n02-pyfunc-custom\nmain.model_serving_cookbook.churn_pyfunc@champion\n1 run\n\n\n03-dependencies\nmain.model_serving_cookbook.churn_deps (alias 미부여)\n3 runs (방식 비교)\n\n\n\n학습 시간은 노트북당 1~2분 (sklearn RandomForest/GradientBoosting on 5K row).\n\n\n\n본 챕터에서 의도적으로 비워 둔 부분입니다.\n\nEndpoint 배포는 03 챕터에서. 본 챕터는 logging 까지만 다룹니다.\nwheel 빌드는 02 챕터에서. code_paths 의 평탄화 문제는 concepts-mlflow-logging.md §code_paths 에서 개념만 다루고, 실습은 02-code-packaging/ 으로 넘어갑니다.\n\n\n\n\nCustom Python 코드를 모델과 함께 묶는 패턴은 02-code-packaging/ 에서 이어집니다.",
+    "text": "MLflow 모델을 flavor / PyFunc 두 방식으로 logging 하고, dependency 를 캡처하는 패턴을 학습합니다. Model Serving 으로 가기 전의 기초 챕터입니다.\n\n\n\n\nMLflow 전체 아키텍처 — Tracking / Models / Registry / Serving\n\n\n본 챕터에서 만드는 산출물(MLmodel, flavors, requirements.txt, python_env.yaml, artifacts)이 모델 패키지 안에 어떻게 배치되는지는 아래 그림을 참고합니다.\n\n\n\nMLflow Model 패키징 구조\n\n\n출처: MLflow Models 공식 문서.\n\n\n번호 순서대로 실행하는 흐름입니다. 00-setup 은 쿡북 전체에서 한 번만 실행하면 됩니다 (다른 챕터도 같은 UC 리소스를 공유).\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n00\n00-setup.ipynb\nUC catalog/schema/volume + synthetic customer churn 데이터 생성 + MLflow registry 설정\n—\n\n\n01\n01-flavor-logging.ipynb\nsklearn flavor log_model, signature 추론, UC 등록, alias (@champion)\n00\n\n\n02\n02-pyfunc-custom.ipynb\nPythonModel 서브클래스, load_context, artifacts, 멀티모델 wrapper\n00\n\n\n03\n03-dependencies.ipynb\npip_requirements vs extra_pip_requirements vs conda_env, lock 전략\n00\n\n\n\nconfig.py 는 catalog / schema / 모델·endpoint 이름을 모두 정의합니다. 모든 노트북이 %run ./config 으로 import 합니다.\n\n\n\n각 노트북이 logging 의 어떤 축을 다루는지 한 줄로 보여 줍니다.\n\n\n\n\n\n\n\n\n\n노트북\n직렬화\nUC 등록\nDependency 캡처\n\n\n\n\n01-flavor-logging\nsklearn flavor (mlflow.sklearn.log_model)\nregistered_model_name=...\n자동 추론 (signature + input_example)\n\n\n02-pyfunc-custom\nPyFunc (mlflow.pyfunc.log_model + PythonModel)\n동일\nartifacts 로 추가 파일 번들\n\n\n03-dependencies\n두 방식 모두\n—\npip_requirements REPLACE / extra_pip_requirements APPEND / conda_env\n\n\n\n\n\n\nCPU 노드로 충분합니다. 노트북은 5K row sklearn 모델만 학습합니다.\n\n\n\n항목\n값\n\n\n\n\nCluster mode\nSingle user\n\n\nDatabricks Runtime\nDBR 15.x ML 이상 (CPU)\n\n\nDriver type\ni3.xlarge 등 일반 CPU\n\n\nWorkers\n0 (single-node) 또는 소수 — Spark 사용 거의 없음\n\n\n\n00-setup 첫 셀이 %pip install -q \"mlflow&gt;=2.20.0\" \"databricks-sdk&gt;=0.30.0\" 으로 의존성을 명시합니다.\n\n\n\n각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n등록 모델\nExperiment runs\n\n\n\n\n00-setup\n—\n/Users/&lt;you&gt;/model_serving_cookbook experiment 생성\n\n\n01-flavor-logging\nmain.model_serving_cookbook.churn_basic@champion\n1 run\n\n\n02-pyfunc-custom\nmain.model_serving_cookbook.churn_pyfunc@champion\n1 run\n\n\n03-dependencies\nmain.model_serving_cookbook.churn_deps (alias 미부여)\n3 runs (방식 비교)\n\n\n\n학습 시간은 노트북당 1~2분 (sklearn RandomForest/GradientBoosting on 5K row).\n\n\n\n본 챕터에서 의도적으로 비워 둔 부분입니다.\n\nEndpoint 배포는 03 챕터에서. 본 챕터는 logging 까지만 다룹니다.\nwheel 빌드는 02 챕터에서. code_paths 의 평탄화 문제는 concepts-mlflow-logging.md §code_paths 에서 개념만 다루고, 실습은 02-code-packaging/ 으로 넘어갑니다.\n\n\n\n\nCustom Python 코드를 모델과 함께 묶는 패턴은 02-code-packaging/ 에서 이어집니다.",
     "crumbs": [
       "Home",
       "01 · MLflow Logging"
@@ -2698,7 +2842,7 @@
     "href": "01-mlflow-logging/01-flavor-logging.html",
     "title": "01 · Flavor Logging",
     "section": "",
-    "text": "MLflow flavor: sklearn 모델을 native flavor 로 logging\nSignature & Input example: 자동 추론 + 의존성 캡처\nUnity Catalog 등록: 3-level namespace (catalog.schema.model)\nAlias: Champion / Challenger — 더이상 Staging/Production stage 없음\n모델 로드: models:/&lt;name&gt;@&lt;alias&gt; URI 로 batch / serving 호출\n\n\n%run ./config\n\n\nimport mlflow\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)",
+    "text": "sklearn flavor 직렬화 구조\n출처: MLflow Models 공식 문서.",
     "crumbs": [
       "Home",
       "01 · MLflow Logging",
@@ -2709,8 +2853,8 @@
     "objectID": "01-mlflow-logging/01-flavor-logging.html#이-노트북에서-배우는-것",
     "href": "01-mlflow-logging/01-flavor-logging.html#이-노트북에서-배우는-것",
     "title": "01 · Flavor Logging",
-    "section": "",
-    "text": "MLflow flavor: sklearn 모델을 native flavor 로 logging\nSignature & Input example: 자동 추론 + 의존성 캡처\nUnity Catalog 등록: 3-level namespace (catalog.schema.model)\nAlias: Champion / Challenger — 더이상 Staging/Production stage 없음\n모델 로드: models:/&lt;name&gt;@&lt;alias&gt; URI 로 batch / serving 호출\n\n\n%run ./config\n\n\nimport mlflow\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)",
+    "section": "이 노트북에서 배우는 것",
+    "text": "이 노트북에서 배우는 것\n\nMLflow flavor: sklearn 모델을 native flavor 로 logging\nSignature & Input example: 자동 추론 + 의존성 캡처\nUnity Catalog 등록: 3-level namespace (catalog.schema.model)\nAlias: Champion / Challenger — 더이상 Staging/Production stage 없음\n모델 로드: models:/&lt;name&gt;@&lt;alias&gt; URI 로 serving 호출\n\n\n%run ./config\n\n\nimport mlflow\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)",
     "crumbs": [
       "Home",
       "01 · MLflow Logging",
@@ -2778,23 +2922,11 @@
     ]
   },
   {
-    "objectID": "01-mlflow-logging/01-flavor-logging.html#step-6.-spark-udf-로-배치-점수화",
-    "href": "01-mlflow-logging/01-flavor-logging.html#step-6.-spark-udf-로-배치-점수화",
-    "title": "01 · Flavor Logging",
-    "section": "Step 6. Spark UDF 로 배치 점수화",
-    "text": "Step 6. Spark UDF 로 배치 점수화\nModel Serving 엔드포인트는 low-latency real-time 용입니다. 수백만 row 점수화는 mlflow.pyfunc.spark_udf 로 클러스터에서 병렬 처리 하세요.\n\npredict_udf = mlflow.pyfunc.spark_udf(\n    spark,\n    model_uri=f\"models:/{model_basic}@Champion\",\n    env_manager=\"virtualenv\",\n)\n\nscored = (\n    spark.table(f\"{catalog}.{schema}.customers\")\n         .limit(1000)\n         .withColumn(\"score\", predict_udf(*FEATURES))\n)\ndisplay(scored.select(\"customer_id\", *FEATURES, \"score\").limit(10))",
-    "crumbs": [
-      "Home",
-      "01 · MLflow Logging",
-      "01 · Flavor Logging"
-    ]
-  },
-  {
     "objectID": "01-mlflow-logging/01-flavor-logging.html#정리",
     "href": "01-mlflow-logging/01-flavor-logging.html#정리",
     "title": "01 · Flavor Logging",
     "section": "정리",
-    "text": "정리\n\n\n\n\n\n\n\n개념\n핵심\n\n\n\n\nFlavor logging\nmlflow.sklearn.log_model(...) — native 직렬화 + pyfunc 자동 등록\n\n\nsignature/input_example\ninfer_signature + 5개 row 만 줘도 dep 추론 trigger\n\n\nUC 등록\nregistered_model_name=\"catalog.schema.model\" 3-level\n\n\nAlias\nclient.set_registered_model_alias(..., \"Champion\", v)\n\n\nLoad\nmodels:/&lt;name&gt;@&lt;alias&gt; URI\n\n\nBatch\nmlflow.pyfunc.spark_udf 로 병렬 점수화\n\n\n\n→ 다음: 02_pyfunc_custom — PyFunc + load_context + artifacts 로 임의 코드 패키징",
+    "text": "정리\n\n\n\n\n\n\n\n개념\n핵심\n\n\n\n\nFlavor logging\nmlflow.sklearn.log_model(...) — native 직렬화 + pyfunc 자동 등록\n\n\nsignature/input_example\ninfer_signature + 5개 row 만 줘도 dep 추론 trigger\n\n\nUC 등록\nregistered_model_name=\"catalog.schema.model\" 3-level\n\n\nAlias\nclient.set_registered_model_alias(..., \"Champion\", v)\n\n\nLoad\nmodels:/&lt;name&gt;@&lt;alias&gt; URI\n\n\n\n→ 다음: 02_pyfunc_custom — PyFunc + load_context + artifacts 로 임의 코드 패키징",
     "crumbs": [
       "Home",
       "01 · MLflow Logging",
@@ -2806,7 +2938,7 @@
     "href": "01-mlflow-logging/03-dependencies.html",
     "title": "03 · Dependency Management",
     "section": "",
-    "text": "MLflow 모델은 자신의 의존성을 artifact 디렉토리 안에 명시합니다. 이 메타데이터 위에서 서빙 / batch 환경이 빌드됩니다. 부정확하면 production 에서 ImportError / 버전 mismatch 로 폭발합니다.",
+    "text": "Artifact viewer 에서 본 model 패키지 구성요소\n출처: MLflow Models 공식 문서.\nMLflow 모델은 자신의 의존성을 artifact 디렉토리 안에 명시합니다. 이 메타데이터 위에서 서빙 환경이 빌드됩니다. 부정확하면 production 에서 ImportError / 버전 mismatch 로 폭발합니다.",
     "crumbs": [
       "Home",
       "01 · MLflow Logging",
@@ -2830,7 +2962,7 @@
     "href": "01-mlflow-logging/03-dependencies.html#가지-옵션-하나만-골라야-함",
     "title": "03 · Dependency Management",
     "section": "3가지 옵션 — 하나만 골라야 함",
-    "text": "3가지 옵션 — 하나만 골라야 함\n\n\n\n\n\n\n\n\n옵션\n동작\n언제\n\n\n\n\npip_requirements\n추론된 목록을 완전히 대체\n완전한 lockdown 필요 시\n\n\nextra_pip_requirements\n추론된 목록에 추가\n기본 권장 — auto-detect 유지\n\n\nconda_env\nconda YAML 로 전체 환경 제어\nPython 버전 / 시스템 라이브러리까지 제어\n\n\n\n\n%run ./config\n\n\nimport mlflow, os, pandas as pd\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import train_test_split\nfrom mlflow.models import infer_signature\n\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)\n\npdf = spark.table(f\"{catalog}.{schema}.customers\").toPandas()\nFEATURES = [\"age\", \"tenure_months\", \"monthly_charges\", \"total_charges\", \"support_tickets\"]\nX_train, X_test, y_train, y_test = train_test_split(\n    pdf[FEATURES], pdf[\"churned\"], test_size=0.2, random_state=42\n)\nrf = RandomForestClassifier(n_estimators=50, max_depth=6, random_state=42).fit(X_train, y_train)\nsig = infer_signature(X_train, rf.predict(X_train))",
+    "text": "3가지 옵션 — 하나만 골라야 함\n\n\n\n\n\n\n\n\n옵션\n동작\n언제\n\n\n\n\npip_requirements\n추론된 목록을 완전히 대체\n완전한 lockdown 필요 시\n\n\nextra_pip_requirements\n추론된 목록에 추가\n기본 권장 — auto-detect 유지\n\n\nconda_env\nconda YAML 로 전체 환경 제어\nPython 버전 / 시스템 라이브러리까지 제어\n\n\n\n\n%pip install -q \"uv&gt;=0.5.0\"\n%restart_python\n\n\n%run ./config\n\n\nimport mlflow, os, pandas as pd\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import train_test_split\nfrom mlflow.models import infer_signature\n\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)\n\npdf = spark.table(f\"{catalog}.{schema}.customers\").toPandas()\nFEATURES = [\"age\", \"tenure_months\", \"monthly_charges\", \"total_charges\", \"support_tickets\"]\nX_train, X_test, y_train, y_test = train_test_split(\n    pdf[FEATURES], pdf[\"churned\"], test_size=0.2, random_state=42\n)\nrf = RandomForestClassifier(n_estimators=50, max_depth=6, random_state=42).fit(X_train, y_train)\nsig = infer_signature(X_train, rf.predict(X_train))",
     "crumbs": [
       "Home",
       "01 · MLflow Logging",
@@ -2974,7 +3106,7 @@
     "href": "02-code-packaging/01-code-paths.html#함정들",
     "title": "04 · code_paths",
     "section": "함정들",
-    "text": "함정들\n\n평탄화 (flattening) — src/utils.py 를 주면 code/utils.py 로 들어감 (code/src/utils.py 아님)\n중첩 패키지 — from mypkg.sub import foo 같은 import 는 패키지 디렉토리 전체를 통째로 줘야 함\nRelative import — from .x import y 는 종종 깨짐\nTransitive deps — pyproject.toml 처럼 dep 캡처 안 됨. pip_requirements 에 직접 넣어야 함\n\n\n결론: 트리비얼한 한두 파일은 code_paths OK, 그 이상은 wheel 빌드 권장 → 05_uv_wheel\n\n\n%run ./config\n\n\nimport mlflow, os, shutil, pandas as pd\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)",
+    "text": "함정들\n\n평탄화 (flattening) — src/utils.py 를 주면 code/utils.py 로 들어감 (code/src/utils.py 아님)\n중첩 패키지 — from mypkg.sub import foo 같은 import 는 패키지 디렉토리 전체를 통째로 줘야 함\nRelative import — from .x import y 는 종종 깨짐\nTransitive deps — pyproject.toml 처럼 dep 캡처 안 됨. pip_requirements 에 직접 넣어야 함\n디렉토리는 재귀 복사 — 폴더를 주면 하위 전체가 그대로 들어감. __pycache__, .pyc, .git 같은 것도 같이 빨려 들어가니 미리 정리 권장\n\n\n결론: 트리비얼한 한두 파일은 code_paths OK, 그 이상은 wheel 빌드 권장 → 05_uv_wheel\n\n\n%run ./config\n\n\nimport mlflow, os, shutil, pandas as pd\nmlflow.set_registry_uri(\"databricks-uc\")\nmlflow.set_experiment(experiment_path)",
     "crumbs": [
       "Home",
       "02 · Code Packaging",
@@ -3022,7 +3154,7 @@
     "href": "02-code-packaging/01-code-paths.html#step-4.-모델-디렉토리-구조-확인-code-안에-평탄화된-모습",
     "title": "04 · code_paths",
     "section": "Step 4. 모델 디렉토리 구조 확인 — code/ 안에 평탄화된 모습",
-    "text": "Step 4. 모델 디렉토리 구조 확인 — code/ 안에 평탄화된 모습\n\nlocal = mlflow.artifacts.download_artifacts(info.model_uri)\nfor root, dirs, files in os.walk(local):\n    level = root.replace(local, \"\").count(os.sep)\n    indent = \"  \" * level\n    print(f\"{indent}{os.path.basename(root)}/\")\n    for f in files:\n        print(f\"{indent}  {f}\")\n\ncode/ 안에 preprocessing.py 와 featurizers/ 가 그대로 들어갔습니다. 만약 code_paths=[\"src/preprocessing.py\"] 처럼 하위 경로를 줬다면 code/preprocessing.py 로 평탄화 되었을 겁니다 — 이게 nested package 가 깨지는 이유.",
+    "text": "Step 4. 모델 디렉토리 구조 확인 — code/ 안에 평탄화된 모습\n\nMLflow UI → 해당 run → Artifacts 탭에서도 code/ 폴더를 바로 볼 수 있습니다. 아래는 로컬로 받아서 트리 출력하는 방식.\n\n\nlocal = mlflow.artifacts.download_artifacts(info.model_uri)\nfor root, dirs, files in os.walk(local):\n    level = root.replace(local, \"\").count(os.sep)\n    indent = \"  \" * level\n    print(f\"{indent}{os.path.basename(root)}/\")\n    for f in files:\n        print(f\"{indent}  {f}\")\n\ncode/ 안에 preprocessing.py 와 featurizers/ 가 그대로 들어갔습니다. 만약 code_paths=[\"src/preprocessing.py\"] 처럼 하위 경로를 줬다면 code/preprocessing.py 로 평탄화 되었을 겁니다 — 이게 nested package 가 깨지는 이유.",
     "crumbs": [
       "Home",
       "02 · Code Packaging",
@@ -3070,7 +3202,7 @@
     "href": "03-model-serving/README.html",
     "title": "03 · Model Serving",
     "section": "",
-    "text": "등록된 UC 모델을 Serving endpoint 로 띄우고, 호출·Blue/Green 롤아웃·Serverless Express 배포를 다룹니다. 핸즈온 종료 후에는 반드시 99-cleanup 으로 endpoint 를 정리합니다.\n\n\n\n번호 순서대로 실행하는 흐름입니다.\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-model-serving.ipynb\nEndpoint 생성, 호출 4방법, AI Gateway, Blue/Green 트래픽, Spark UDF batch inference\n02 챕터 02-uv-wheel 까지 (등록 모델 churn_wheel@champion)\n\n\n02\n02-express-deployment.ipynb\nServerless CPU EnvPackConfig 원클릭 배포. Notebook v3/v4 + mlflow&gt;=3.1.0 필요.\n01 챕터 00-setup\n\n\n99\n99-cleanup.ipynb\n생성된 endpoint, 등록 모델, UC table 정리 (선택)\n—\n\n\n\n\n\n\n두 deploy 방식의 차이를 한눈에 보여 줍니다.\n\n\n\n\n\n\n\n\n측면\n01-model-serving (Classic)\n02-express-deployment (Express)\n\n\n\n\nProvisioning API\ndatabricks.sdk.WorkspaceClient().serving_endpoints.create\nmlflow.deployments.get_deploy_client(\"databricks\").create_endpoint + EnvPackConfig\n\n\n컴퓨트\nClassic CPU pool\nServerless CPU\n\n\nScale-to-zero\nscale_to_zero_enabled=True\n기본 활성\n\n\n배포 시간\n5~10 분\n1~3 분 (이미지 캐시 시)\n\n\nBlue/Green 트래픽 분배\n✅ traffic_config\n기본 단일 served entity (수동 split 필요)\n\n\nAI Gateway (rate limit / log)\n✅\n△ (메뉴는 동일하지만 일부 옵션 제한)\n\n\n권장 시점\n운영, 트래픽 분배 필요\nPoC, 빠른 검증, 단일 모델\n\n\n\n\n\n\n\n\n\n\n\n\n\n노트북\n컴퓨트\n\n\n\n\n01-model-serving\nDBR ML 15.x 이상 (CPU). Endpoint 자체는 Databricks 가 호스팅\n\n\n02-express-deployment\nServerless Notebook v3 / v4 + mlflow&gt;=3.1.0\n\n\n99-cleanup\n아무 클러스터\n\n\n\n02 노트북은 일반 클러스터에서는 동작하지 않습니다. Notebook 우측 상단 compute 에서 Serverless 를 선택하세요.\n\n\n\n각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n생성 endpoint\n호출 검증\n\n\n\n\n01-model-serving\nchurn-wheel-endpoint (scale_to_zero=True)\nREST / SDK / Spark UDF 4종 모두 동일 응답\n\n\n02-express-deployment\nchurn-express-endpoint\nREST 호출 ms 단위 응답\n\n\n99-cleanup\n위 두 endpoint 삭제\nUC 모델·table 도 선택적으로 삭제\n\n\n\nEndpoint 가 처음 cold start 할 때 1~2분 걸리는 게 정상입니다.\n\n\n\n본 챕터에서 운영비가 발생할 수 있는 부분입니다.\n\nEndpoint 가 가장 비쌉니다. scale_to_zero_enabled=True 라도 traffic 이 있는 동안 시간당 과금. 핸즈온 종료 후 반드시 99-cleanup 실행.\nWorkspace-unique 이름: config.py 의 endpoint_wheel, endpoint_express 가 다른 사용자와 충돌하면 endpoint 생성이 실패합니다. prefix 를 본인 이름으로 변경하세요.\nExpress Deployment 는 single served entity: 01 의 Blue/Green 패턴이 그대로 적용되지 않습니다. 트래픽 분배가 필요하면 Classic 으로 가세요.\nAI Gateway 의 일부 옵션(예: PII masking)은 enterprise tier 에서만 활성화됩니다.\n\n\n\n\n핸즈온이 끝났다면 99-cleanup 을 실행한 뒤 루트 매트릭스로 돌아갑니다.",
+    "text": "등록된 UC 모델을 Serving endpoint 로 띄우고, 호출·Blue/Green 롤아웃·Serverless Express 배포를 다룹니다. 핸즈온 종료 후에는 반드시 99-cleanup 으로 endpoint 를 정리합니다.\n\n\n\n번호 순서대로 실행하는 흐름입니다.\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-model-serving.ipynb\nEndpoint 생성, 호출 4방법, AI Gateway, Blue/Green 트래픽\n02 챕터 02-uv-wheel 까지 (등록 모델 churn_wheel@champion)\n\n\n02\n02-express-deployment.ipynb\nServerless CPU EnvPackConfig 원클릭 배포. Notebook v3/v4 + mlflow&gt;=3.1.0 필요.\n01 챕터 00-setup\n\n\n99\n99-cleanup.ipynb\n생성된 endpoint, 등록 모델, UC table 정리 (선택)\n—\n\n\n\n\n\n\n두 deploy 방식의 차이를 한눈에 보여 줍니다.\n\n\n\n\n\n\n\n\n측면\n01-model-serving (Classic)\n02-express-deployment (Express)\n\n\n\n\nProvisioning API\ndatabricks.sdk.WorkspaceClient().serving_endpoints.create\nmlflow.deployments.get_deploy_client(\"databricks\").create_endpoint + EnvPackConfig\n\n\n컴퓨트\nClassic CPU pool\nServerless CPU\n\n\nScale-to-zero\nscale_to_zero_enabled=True\n기본 활성\n\n\n배포 시간\n5~10 분\n1~3 분 (이미지 캐시 시)\n\n\nBlue/Green 트래픽 분배\n✅ traffic_config\n기본 단일 served entity (수동 split 필요)\n\n\nAI Gateway (rate limit / log)\n✅\n△ (메뉴는 동일하지만 일부 옵션 제한)\n\n\n권장 시점\n운영, 트래픽 분배 필요\nPoC, 빠른 검증, 단일 모델\n\n\n\n\n\n\n\n\n\n\n\n\n\n노트북\n컴퓨트\n\n\n\n\n01-model-serving\nDBR ML 15.x 이상 (CPU). Endpoint 자체는 Databricks 가 호스팅\n\n\n02-express-deployment\nServerless Notebook v3 / v4 + mlflow&gt;=3.1.0\n\n\n99-cleanup\n아무 클러스터\n\n\n\n02 노트북은 일반 클러스터에서는 동작하지 않습니다. Notebook 우측 상단 compute 에서 Serverless 를 선택하세요.\n\n\n\n각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n생성 endpoint\n호출 검증\n\n\n\n\n01-model-serving\nchurn-wheel-endpoint (scale_to_zero=True)\nREST / SDK / requests / curl 4종 호출 모두 동일 응답\n\n\n02-express-deployment\nchurn-express-endpoint\nREST 호출 ms 단위 응답\n\n\n99-cleanup\n위 두 endpoint 삭제\nUC 모델·table 도 선택적으로 삭제\n\n\n\nEndpoint 가 처음 cold start 할 때 1~2분 걸리는 게 정상입니다.\n\n\n\n본 챕터에서 운영비가 발생할 수 있는 부분입니다.\n\nEndpoint 가 가장 비쌉니다. scale_to_zero_enabled=True 라도 traffic 이 있는 동안 시간당 과금. 핸즈온 종료 후 반드시 99-cleanup 실행.\nWorkspace-unique 이름: config.py 의 endpoint_wheel, endpoint_express 가 다른 사용자와 충돌하면 endpoint 생성이 실패합니다. prefix 를 본인 이름으로 변경하세요.\nExpress Deployment 는 single served entity: 01 의 Blue/Green 패턴이 그대로 적용되지 않습니다. 트래픽 분배가 필요하면 Classic 으로 가세요.\nAI Gateway 의 일부 옵션(예: PII masking)은 enterprise tier 에서만 활성화됩니다.\n\n\n\n\n핸즈온이 끝났다면 99-cleanup 을 실행한 뒤 루트 매트릭스로 돌아갑니다.",
     "crumbs": [
       "Home",
       "03 · Model Serving"
@@ -3081,7 +3213,7 @@
     "href": "03-model-serving/README.html#노트북-흐름",
     "title": "03 · Model Serving",
     "section": "",
-    "text": "번호 순서대로 실행하는 흐름입니다.\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-model-serving.ipynb\nEndpoint 생성, 호출 4방법, AI Gateway, Blue/Green 트래픽, Spark UDF batch inference\n02 챕터 02-uv-wheel 까지 (등록 모델 churn_wheel@champion)\n\n\n02\n02-express-deployment.ipynb\nServerless CPU EnvPackConfig 원클릭 배포. Notebook v3/v4 + mlflow&gt;=3.1.0 필요.\n01 챕터 00-setup\n\n\n99\n99-cleanup.ipynb\n생성된 endpoint, 등록 모델, UC table 정리 (선택)\n—",
+    "text": "번호 순서대로 실행하는 흐름입니다.\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-model-serving.ipynb\nEndpoint 생성, 호출 4방법, AI Gateway, Blue/Green 트래픽\n02 챕터 02-uv-wheel 까지 (등록 모델 churn_wheel@champion)\n\n\n02\n02-express-deployment.ipynb\nServerless CPU EnvPackConfig 원클릭 배포. Notebook v3/v4 + mlflow&gt;=3.1.0 필요.\n01 챕터 00-setup\n\n\n99\n99-cleanup.ipynb\n생성된 endpoint, 등록 모델, UC table 정리 (선택)\n—",
     "crumbs": [
       "Home",
       "03 · Model Serving"
@@ -3114,7 +3246,7 @@
     "href": "03-model-serving/README.html#기대-결과",
     "title": "03 · Model Serving",
     "section": "",
-    "text": "각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n생성 endpoint\n호출 검증\n\n\n\n\n01-model-serving\nchurn-wheel-endpoint (scale_to_zero=True)\nREST / SDK / Spark UDF 4종 모두 동일 응답\n\n\n02-express-deployment\nchurn-express-endpoint\nREST 호출 ms 단위 응답\n\n\n99-cleanup\n위 두 endpoint 삭제\nUC 모델·table 도 선택적으로 삭제\n\n\n\nEndpoint 가 처음 cold start 할 때 1~2분 걸리는 게 정상입니다.",
+    "text": "각 노트북 종료 시 워크스페이스 상태입니다.\n\n\n\n\n\n\n\n\n노트북\n생성 endpoint\n호출 검증\n\n\n\n\n01-model-serving\nchurn-wheel-endpoint (scale_to_zero=True)\nREST / SDK / requests / curl 4종 호출 모두 동일 응답\n\n\n02-express-deployment\nchurn-express-endpoint\nREST 호출 ms 단위 응답\n\n\n99-cleanup\n위 두 endpoint 삭제\nUC 모델·table 도 선택적으로 삭제\n\n\n\nEndpoint 가 처음 cold start 할 때 1~2분 걸리는 게 정상입니다.",
     "crumbs": [
       "Home",
       "03 · Model Serving"
@@ -3195,7 +3327,7 @@
     "href": "03-model-serving/02-express-deployment.html#step-2.-log-register-with-envpackconfig",
     "title": "07 · Express Deployment",
     "section": "Step 2. Log + Register with EnvPackConfig",
-    "text": "Step 2. Log + Register with EnvPackConfig\nenv_pack=EnvPackConfig(name=\"databricks_model_serving\") 가 핵심. 이게 있으면 serverless env 가 serving 용으로 staging 됩니다.\n\nsig = infer_signature(X_train, pipe.predict(X_train))\n\nwith mlflow.start_run(run_name=\"express_lr\") as run:\n    info = mlflow.sklearn.log_model(\n        sk_model=pipe,\n        name=\"model\",\n        signature=sig,\n        input_example=X_train.iloc[:5],\n    )\n    print(f\"logged: {info.model_uri}\")\n\n\nExpress 모드로 등록\nEnvPackConfig 가 import 안 되는 경우 — MLflow 3.1 미만이거나 plugin 미설치. 그 경우엔 standard registration 후 일반 endpoint 생성 (=06번 노트북).\n\ntry:\n    from mlflow.utils.env_pack import EnvPackConfig\n\n    mv = mlflow.register_model(\n        model_uri=info.model_uri,\n        name=model_express,\n        env_pack=EnvPackConfig(name=\"databricks_model_serving\"),\n    )\n    print(f\"✓ Express registration: {model_express} v{mv.version}\")\n    express_available = True\n\nexcept ImportError as e:\n    print(f\"⚠ EnvPackConfig 미지원 — standard registration 으로 fallback ({e})\")\n    mv = mlflow.register_model(model_uri=info.model_uri, name=model_express)\n    express_available = False",
+    "text": "Step 2. Log + Register with EnvPackConfig\nenv_pack=EnvPackConfig(name=\"databricks_model_serving\") 가 핵심. 이게 있으면 serverless env 가 serving 용으로 staging 됩니다.\n\nsig = infer_signature(X_train, pipe.predict(X_train))\n\nwith mlflow.start_run(run_name=\"express_lr\") as run:\n    info = mlflow.sklearn.log_model(\n        sk_model=pipe,\n        name=\"model\",\n        signature=sig,\n        input_example=X_train.iloc[:5],\n    )\n    print(f\"logged: {info.model_uri}\")\n\n\nExpress 모드로 등록\nEnvPackConfig 가 import 안 되는 경우 — MLflow 3.1 미만이거나 plugin 미설치. 그 경우엔 standard registration 후 일반 endpoint 생성 (=06번 노트북).\n\ntry:\n    from mlflow.utils.env_pack import EnvPackConfig\n\n    mv = mlflow.register_model(\n        model_uri=info.model_uri,\n        name=model_express,\n        env_pack=EnvPackConfig(name=\"databricks_model_serving\"),\n    )\n    print(f\"✓ Express registration: {model_express} v{mv.version}\")\n    express_available = True\n\nexcept (ImportError, ValueError) as e:\n    print(f\"⚠ EnvPackConfig 미지원 또는 비serverless 환경 — standard registration 으로 fallback ({e})\")\n    mv = mlflow.register_model(model_uri=info.model_uri, name=model_express)\n    express_available = False",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -3219,7 +3351,7 @@
     "href": "03-model-serving/02-express-deployment.html#step-4.-sdk-로-endpoint-생성-ui-와-동일한-결과",
     "title": "07 · Express Deployment",
     "section": "Step 4. SDK 로 endpoint 생성 (UI 와 동일한 결과)",
-    "text": "Step 4. SDK 로 endpoint 생성 (UI 와 동일한 결과)\n\nfrom databricks.sdk import WorkspaceClient\nfrom databricks.sdk.service.serving import (\n    EndpointCoreConfigInput, ServedEntityInput, TrafficConfig, Route,\n)\nimport time\n\nw = WorkspaceClient()\nserved_name = f\"express-v{mv.version}\"\n\nt0 = time.time()\nendpoint = w.serving_endpoints.create_and_wait(\n    name=endpoint_express,\n    config=EndpointCoreConfigInput(\n        served_entities=[\n            ServedEntityInput(\n                name=served_name,\n                entity_name=model_express,\n                entity_version=str(mv.version),\n                workload_size=\"Small\",\n                workload_type=\"CPU\",\n                scale_to_zero_enabled=True,\n            )\n        ],\n        traffic_config=TrafficConfig(\n            routes=[Route(served_model_name=served_name, traffic_percentage=100)]\n        ),\n    ),\n    timeout=__import__(\"datetime\").timedelta(minutes=15),\n)\nelapsed = time.time() - t0\nprint(f\"✓ {endpoint_express} READY in {elapsed/60:.1f} 분\")\nprint(f\"   (Express 활성 시 1-2분, 일반 빌드 시 5-10분)\")",
+    "text": "Step 4. SDK 로 endpoint 생성 (UI 와 동일한 결과)\n\nfrom databricks.sdk import WorkspaceClient\nfrom databricks.sdk.service.serving import (\n    EndpointCoreConfigInput, ServedEntityInput, TrafficConfig, Route,\n)\nimport time\n\nw = WorkspaceClient()\nserved_name = f\"express-v{mv.version}\"\n\nt0 = time.time()\nendpoint = w.serving_endpoints.create_and_wait(\n    name=endpoint_express,\n    config=EndpointCoreConfigInput(\n        served_entities=[\n            ServedEntityInput(\n                name=served_name,\n                entity_name=model_express,\n                entity_version=str(mv.version),\n                workload_size=\"Small\",\n                scale_to_zero_enabled=True,\n            )\n        ],\n        traffic_config=TrafficConfig(\n            routes=[Route(served_model_name=served_name, traffic_percentage=100)]\n        ),\n    ),\n    timeout=__import__(\"datetime\").timedelta(minutes=15),\n)\nelapsed = time.time() - t0\nprint(f\"✓ {endpoint_express} READY in {elapsed/60:.1f} 분\")\nprint(f\"   (Express 활성 시 1-2분, 일반 빌드 시 5-10분)\")",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -3243,7 +3375,7 @@
     "href": "03-model-serving/02-express-deployment.html#step-6.-scale-to-zero-비용-프로파일",
     "title": "07 · Express Deployment",
     "section": "Step 6. Scale-to-zero 비용 프로파일",
-    "text": "Step 6. Scale-to-zero 비용 프로파일\nscale_to_zero_enabled=True 시:\n\n\n\n\n\n\n\n상태\n비용\n\n\n\n\nIdle (no requests)\n$0 — 0 replica\n\n\nFirst request after idle\nCold start: Express 시 ~30s, 일반 CPU ~60s\n\n\nWarm (active)\nReplica-hour 당 CPU Model Serving DBU rate\n\n\n\n프로덕션 SLA 비권장 (scaled-to-zero 일 때 capacity 보장 X). 데모 / 내부 도구 / 저빈도 호출에 최적.\n\nProvisioned vs Scale-to-zero\n\n\n\n\n\n\n\n시나리오\n권장\n\n\n\n\n사내 데모 / dev / test\nscale_to_zero on\n\n\n저빈도 (몇 분에 한 번) batch\nscale_to_zero on, Express\n\n\n24/7 production with SLA\nscale_to_zero off, provisioned (workload_size Medium+)\n\n\nFMAPI / 고QPS LLM\nProvisioned throughput (별도 ramp)",
+    "text": "Step 6. Scale-to-zero 비용 프로파일\nscale_to_zero_enabled=True 시:\n\n\n\n\n\n\n\n상태\n비용\n\n\n\n\nIdle (no requests)\n$0 — 0 replica\n\n\nFirst request after idle\nCold start: Express 시 ~30s, 일반 CPU ~60s\n\n\nWarm (active)\nReplica-hour 당 CPU Model Serving DBU rate\n\n\n\n프로덕션 SLA 비권장 (scaled-to-zero 일 때 capacity 보장 X). 데모 / 내부 도구 / 저빈도 호출에 최적.\n\nProvisioned vs Scale-to-zero\n\n\n\n\n\n\n\n시나리오\n권장\n\n\n\n\n사내 데모 / dev / test\nscale_to_zero on\n\n\n24/7 production with SLA\nscale_to_zero off, provisioned (workload_size Medium+)\n\n\nFMAPI / 고QPS LLM\nProvisioned throughput (별도 ramp)",
     "crumbs": [
       "Home",
       "03 · Model Serving",
@@ -3275,11 +3407,88 @@
     ]
   },
   {
+    "objectID": "04-gpu-torch-serving/README.html",
+    "href": "04-gpu-torch-serving/README.html",
+    "title": "04 · GPU PyTorch — Train · Log · Serve",
+    "section": "",
+    "text": "작은 PyTorch MLP 를 단일 GPU 에서 학습 → MLflow PyFunc 로 logging → workload_type=GPU_SMALL (T4) Serving endpoint 로 배포까지 한 노트북에서 다룹니다. CPU sklearn 흐름(01·02·03)을 GPU torch 로 확장하는 미니 체험판입니다.\n\n\n\n\n\n\n순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-train-and-serve.ipynb\ntorch MLP 학습(GPU) → PyFunc logging → UC alias → GPU endpoint 생성·호출\n01 챕터 00-setup (customer table 필요)\n\n\n\nconfig.py 는 다른 챕터와 동일한 내용을 복제해 사용합니다.\n\n\n\n\n\n\n\n\n\n\n\n측면\n01-mlflow-logging\n04-gpu-torch-serving\n\n\n\n\nML 프레임워크\nscikit-learn\nPyTorch\n\n\n컴퓨트\nCPU\nGPU (T4 권장)\n\n\nLogging API\nmlflow.sklearn.log_model / PyFunc\nmlflow.pyfunc.log_model + code_paths 기반 클래스 외부화\n\n\nEndpoint workload_type\n(default CPU)\nGPU_SMALL\n\n\n표준화\nsklearn pipeline 가 처리\nPyFunc load_context 안에서 numpy 로 직접 처리\n\n\n\nPyTorch 모델은 클래스 정의가 endpoint container 안에 있어야 pickle 이 복원되므로, 노트북 안에서 /tmp/churn_torch_code/churn_model.py 를 생성해 code_paths 와 같은 효과를 냅니다. 02 챕터의 wheel 패턴(02-code-packaging/02-uv-wheel)이 production 권장입니다.\n\n\n\n\n\n\n항목\n값\n\n\n\n\nCluster mode\nSingle user\n\n\nDatabricks Runtime\nDBR 15.x ML 이상 (GPU CUDA 포함)\n\n\nDriver type\ng4dn.xlarge (1× T4) 또는 g5.xlarge (1× A10G)\n\n\nWorkers\n0 (single-node)\n\n\n\nGPU 가 보이지 않으면 노트북 첫 셀의 torch.cuda.is_available() assert 에서 멈춥니다.\n\n\n\n\n\n\n\n\n\n\n단계\n산출물\n\n\n\n\n학습 (10 epoch, 5K row)\nval/acc ≈ 0.80~0.90, 학습 시간 &lt; 30초\n\n\nLogging\nmain.model_serving_cookbook.churn_torch_gpu@champion\n\n\nEndpoint\nchurn-torch-gpu-endpoint (workload_type=GPU_SMALL, scale_to_zero=True)\n\n\n첫 호출\ncold start 30~60초, 이후 ms 단위\n\n\n\nEndpoint provisioning 은 image build + GPU 노드 할당으로 5~15분 걸리는 게 정상입니다.\n\n\n\n\nGPU endpoint 는 CPU 보다 시간당 비용이 큽니다. scale_to_zero_enabled=True 가 idle 비용을 0 으로 만들지만, traffic 이 있는 동안은 CPU 의 수 배. 핸즈온 종료 후 반드시 ../03-model-serving/99-cleanup.ipynb 실행 (endpoint_torch_gpu 도 포함됨).\n모델은 작습니다. GPU 필요성 자체는 약하지만 패턴 설명용입니다. 실제 LLM/CV 모델은 GPU_MEDIUM/GPU_LARGE 와 더 큰 image 가 필요할 수 있습니다.\n클래스 정의 pickle 경로: 노트북 셀에 직접 정의된 nn.Module 은 endpoint 에서 복원이 안 되므로 /tmp/.../churn_model.py 를 생성해 code_paths 처럼 첨부합니다. 운영에서는 02 챕터의 wheel 패턴을 권장합니다.\n\n\n\n\n\n호출 방식 비교(REST / Spark UDF / AI Gateway)는 ../03-model-serving/01-model-serving.ipynb 의 Step 6 이후가 그대로 적용됩니다 (CPU/GPU endpoint 인터페이스 동일).\n핸즈온이 끝났다면 ../03-model-serving/99-cleanup.ipynb.",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/README.html#노트북-흐름",
+    "href": "04-gpu-torch-serving/README.html#노트북-흐름",
+    "title": "04 · GPU PyTorch — Train · Log · Serve",
+    "section": "",
+    "text": "순서\n파일\n역할\n사전 조건\n\n\n\n\n01\n01-train-and-serve.ipynb\ntorch MLP 학습(GPU) → PyFunc logging → UC alias → GPU endpoint 생성·호출\n01 챕터 00-setup (customer table 필요)\n\n\n\nconfig.py 는 다른 챕터와 동일한 내용을 복제해 사용합니다.",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/README.html#다른-챕터와의-비교",
+    "href": "04-gpu-torch-serving/README.html#다른-챕터와의-비교",
+    "title": "04 · GPU PyTorch — Train · Log · Serve",
+    "section": "",
+    "text": "측면\n01-mlflow-logging\n04-gpu-torch-serving\n\n\n\n\nML 프레임워크\nscikit-learn\nPyTorch\n\n\n컴퓨트\nCPU\nGPU (T4 권장)\n\n\nLogging API\nmlflow.sklearn.log_model / PyFunc\nmlflow.pyfunc.log_model + code_paths 기반 클래스 외부화\n\n\nEndpoint workload_type\n(default CPU)\nGPU_SMALL\n\n\n표준화\nsklearn pipeline 가 처리\nPyFunc load_context 안에서 numpy 로 직접 처리\n\n\n\nPyTorch 모델은 클래스 정의가 endpoint container 안에 있어야 pickle 이 복원되므로, 노트북 안에서 /tmp/churn_torch_code/churn_model.py 를 생성해 code_paths 와 같은 효과를 냅니다. 02 챕터의 wheel 패턴(02-code-packaging/02-uv-wheel)이 production 권장입니다.",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/README.html#클러스터-세팅",
+    "href": "04-gpu-torch-serving/README.html#클러스터-세팅",
+    "title": "04 · GPU PyTorch — Train · Log · Serve",
+    "section": "",
+    "text": "항목\n값\n\n\n\n\nCluster mode\nSingle user\n\n\nDatabricks Runtime\nDBR 15.x ML 이상 (GPU CUDA 포함)\n\n\nDriver type\ng4dn.xlarge (1× T4) 또는 g5.xlarge (1× A10G)\n\n\nWorkers\n0 (single-node)\n\n\n\nGPU 가 보이지 않으면 노트북 첫 셀의 torch.cuda.is_available() assert 에서 멈춥니다.",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/README.html#기대-결과",
+    "href": "04-gpu-torch-serving/README.html#기대-결과",
+    "title": "04 · GPU PyTorch — Train · Log · Serve",
+    "section": "",
+    "text": "단계\n산출물\n\n\n\n\n학습 (10 epoch, 5K row)\nval/acc ≈ 0.80~0.90, 학습 시간 &lt; 30초\n\n\nLogging\nmain.model_serving_cookbook.churn_torch_gpu@champion\n\n\nEndpoint\nchurn-torch-gpu-endpoint (workload_type=GPU_SMALL, scale_to_zero=True)\n\n\n첫 호출\ncold start 30~60초, 이후 ms 단위\n\n\n\nEndpoint provisioning 은 image build + GPU 노드 할당으로 5~15분 걸리는 게 정상입니다.",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/README.html#제약비용",
+    "href": "04-gpu-torch-serving/README.html#제약비용",
+    "title": "04 · GPU PyTorch — Train · Log · Serve",
+    "section": "",
+    "text": "GPU endpoint 는 CPU 보다 시간당 비용이 큽니다. scale_to_zero_enabled=True 가 idle 비용을 0 으로 만들지만, traffic 이 있는 동안은 CPU 의 수 배. 핸즈온 종료 후 반드시 ../03-model-serving/99-cleanup.ipynb 실행 (endpoint_torch_gpu 도 포함됨).\n모델은 작습니다. GPU 필요성 자체는 약하지만 패턴 설명용입니다. 실제 LLM/CV 모델은 GPU_MEDIUM/GPU_LARGE 와 더 큰 image 가 필요할 수 있습니다.\n클래스 정의 pickle 경로: 노트북 셀에 직접 정의된 nn.Module 은 endpoint 에서 복원이 안 되므로 /tmp/.../churn_model.py 를 생성해 code_paths 처럼 첨부합니다. 운영에서는 02 챕터의 wheel 패턴을 권장합니다.",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving"
+    ]
+  },
+  {
+    "objectID": "04-gpu-torch-serving/README.html#다음",
+    "href": "04-gpu-torch-serving/README.html#다음",
+    "title": "04 · GPU PyTorch — Train · Log · Serve",
+    "section": "",
+    "text": "호출 방식 비교(REST / Spark UDF / AI Gateway)는 ../03-model-serving/01-model-serving.ipynb 의 Step 6 이후가 그대로 적용됩니다 (CPU/GPU endpoint 인터페이스 동일).\n핸즈온이 끝났다면 ../03-model-serving/99-cleanup.ipynb.",
+    "crumbs": [
+      "Home",
+      "04 · GPU Torch Serving"
+    ]
+  },
+  {
     "objectID": "docs/README.html",
     "href": "docs/README.html",
     "title": "참고 자료",
     "section": "",
-    "text": "쿡북 본문 밖에 두는 외부 자료 인덱스입니다.\n\n\n\n\n\n자료\n내용\n\n\n\n\nslides/250530_Hadns-on_Sessionpptx.md\nSamsung 핸즈온 세션 슬라이드 (124 slides) 의 마크다운 변환본. 다이어그램·아키텍처 그림은 slides/images/ 에 저장.\n\n\n원본 Google Slides\n공유 권한 필요\n\n\n\n\n\n\n\n\n\n자료\n용도\n\n\n\n\nMLflow Python API\nmlflow.pyfunc.log_model, PythonModel, signatures\n\n\nDatabricks Model Serving\nEndpoint 운영 가이드\n\n\nExpress Deployments\nServerless Notebook 기반 원클릭 배포\n\n\nuv 공식 문서\nwheel 빌드, dependency lock\n\n\n\n쿡북 내부 개념 정리는 ../00-foundations/ 에 있습니다.",
+    "text": "쿡북 본문 밖에 두는 외부 자료 인덱스입니다.\n\n\n\n\n\n자료\n내용\n\n\n\n\nslides/250530_Hadns-on_Sessionpptx.md\nModel Serving 핸즈온 세션 슬라이드 (124 slides) 의 마크다운 변환본. 다이어그램·아키텍처 그림은 slides/images/ 에 저장.\n\n\n원본 Google Slides\n공유 권한 필요\n\n\n\n\n\n\n\n\n\n자료\n용도\n\n\n\n\nMLflow Python API\nmlflow.pyfunc.log_model, PythonModel, signatures\n\n\nDatabricks Model Serving\nEndpoint 운영 가이드\n\n\nExpress Deployments\nServerless Notebook 기반 원클릭 배포\n\n\nuv 공식 문서\nwheel 빌드, dependency lock\n\n\n\n쿡북 내부 개념 정리는 ../00-foundations/ 에 있습니다.",
     "crumbs": [
       "Home",
       "참고 자료"
@@ -3290,7 +3499,7 @@
     "href": "docs/README.html#슬라이드",
     "title": "참고 자료",
     "section": "",
-    "text": "자료\n내용\n\n\n\n\nslides/250530_Hadns-on_Sessionpptx.md\nSamsung 핸즈온 세션 슬라이드 (124 slides) 의 마크다운 변환본. 다이어그램·아키텍처 그림은 slides/images/ 에 저장.\n\n\n원본 Google Slides\n공유 권한 필요",
+    "text": "자료\n내용\n\n\n\n\nslides/250530_Hadns-on_Sessionpptx.md\nModel Serving 핸즈온 세션 슬라이드 (124 slides) 의 마크다운 변환본. 다이어그램·아키텍처 그림은 slides/images/ 에 저장.\n\n\n원본 Google Slides\n공유 권한 필요",
     "crumbs": [
       "Home",
       "참고 자료"

@@ -328,6 +328,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../03-model-serving/README.html">
  <span class="dropdown-text">03 · Model Serving</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../04-gpu-torch-serving/README.html">
+ <span class="dropdown-text">04 · GPU Torch Serving</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item">
@@ -516,13 +520,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a href="../docs/README.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">참고 자료</span></a>
+            <a href="../04-gpu-torch-serving/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">04 · GPU Torch Serving</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="토글 섹션">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../04-gpu-torch-serving/01-train-and-serve.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">01 · GPU PyTorch — Train · Log · Serve</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="../docs/README.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">참고 자료</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="토글 섹션">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../docs/slides/250530_Hadns-on_Sessionpptx.html" class="sidebar-item-text sidebar-link">
@@ -669,8 +690,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"✓ Express registration: </span><span class="sc">{</span>model_express<span class="sc">}</span><span class="ss"> v</span><span class="sc">{</span>mv<span class="sc">.</span>version<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    express_available <span class="op">=</span> <span class="va">True</span></span>
 <span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">ImportError</span> <span class="im">as</span> e:</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"⚠ EnvPackConfig 미지원 — standard registration 으로 fallback (</span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> (<span class="pp">ImportError</span>, <span class="pp">ValueError</span>) <span class="im">as</span> e:</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"⚠ EnvPackConfig 미지원 또는 비serverless 환경 — standard registration 으로 fallback (</span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">)"</span>)</span>
 <span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    mv <span class="op">=</span> mlflow.register_model(model_uri<span class="op">=</span>info.model_uri, name<span class="op">=</span>model_express)</span>
 <span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    express_available <span class="op">=</span> <span class="va">False</span></span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -707,19 +728,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>                entity_name<span class="op">=</span>model_express,</span>
 <span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>                entity_version<span class="op">=</span><span class="bu">str</span>(mv.version),</span>
 <span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>                workload_size<span class="op">=</span><span class="st">"Small"</span>,</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>                workload_type<span class="op">=</span><span class="st">"CPU"</span>,</span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>                scale_to_zero_enabled<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>        ],</span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        traffic_config<span class="op">=</span>TrafficConfig(</span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>            routes<span class="op">=</span>[Route(served_model_name<span class="op">=</span>served_name, traffic_percentage<span class="op">=</span><span class="dv">100</span>)]</span>
-<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    timeout<span class="op">=</span><span class="bu">__import__</span>(<span class="st">"datetime"</span>).timedelta(minutes<span class="op">=</span><span class="dv">15</span>),</span>
-<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>elapsed <span class="op">=</span> time.time() <span class="op">-</span> t0</span>
-<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"✓ </span><span class="sc">{</span>endpoint_express<span class="sc">}</span><span class="ss"> READY in </span><span class="sc">{</span>elapsed<span class="op">/</span><span class="dv">60</span><span class="sc">:.1f}</span><span class="ss"> 분"</span>)</span>
-<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"   (Express 활성 시 1-2분, 일반 빌드 시 5-10분)"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>                scale_to_zero_enabled<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>        traffic_config<span class="op">=</span>TrafficConfig(</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>            routes<span class="op">=</span>[Route(served_model_name<span class="op">=</span>served_name, traffic_percentage<span class="op">=</span><span class="dv">100</span>)]</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>        ),</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    timeout<span class="op">=</span><span class="bu">__import__</span>(<span class="st">"datetime"</span>).timedelta(minutes<span class="op">=</span><span class="dv">15</span>),</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>elapsed <span class="op">=</span> time.time() <span class="op">-</span> t0</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"✓ </span><span class="sc">{</span>endpoint_express<span class="sc">}</span><span class="ss"> READY in </span><span class="sc">{</span>elapsed<span class="op">/</span><span class="dv">60</span><span class="sc">:.1f}</span><span class="ss"> 분"</span>)</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"   (Express 활성 시 1-2분, 일반 빌드 시 5-10분)"</span>)</span></code></pre></div><button title="클립보드 복사" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="step-5.-호출-테스트" class="level2">
@@ -784,14 +804,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>scale_to_zero <strong>on</strong></td>
 </tr>
 <tr class="even">
-<td>저빈도 (몇 분에 한 번) batch</td>
-<td>scale_to_zero <strong>on</strong>, Express</td>
-</tr>
-<tr class="odd">
 <td>24/7 production with SLA</td>
 <td>scale_to_zero <strong>off</strong>, provisioned (<code>workload_size</code> Medium+)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>FMAPI / 고QPS LLM</td>
 <td>Provisioned throughput (별도 ramp)</td>
 </tr>
